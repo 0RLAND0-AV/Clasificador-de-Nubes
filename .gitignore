@@ -44,11 +44,11 @@ checkpoint_*.pt
 best_model.pt
 
 # Data
-data/**/*.jpg
-data/**/*.png
-data/**/*.jpeg
-data/**/*.gif
-!data/.gitkeep
+# data/**/*.jpg
+# data/**/*.png
+# data/**/*.jpeg
+# data/**/*.gif
+# !data/.gitkeep
 
 # Uploads
 uploads/
