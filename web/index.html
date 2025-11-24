@@ -22,7 +22,7 @@
         <main class="main-content">
             <div class="grid">
                 <!-- Upload Section -->
-                <section class="card upload-section">
+                <section class="card upload-section" id="upload-section">
                     <h2><i class="fas fa-upload"></i> Sube una imagen de nube</h2>
                     
                     {% if not model_loaded %}
@@ -32,12 +32,12 @@
                     </div>
                     {% endif %}
 
-                    <div class="upload-area" id="uploadArea">
+                    <div class="upload-area" id="upload-area">
                         <i class="fas fa-image"></i>
                         <p><strong>Arrastra una imagen aquí</strong></p>
                         <p class="small">o haz clic para seleccionar</p>
-                        <input type="file" id="fileInput" accept="image/*" hidden>
                     </div>
+                    <input type="file" id="file-input" accept="image/*" style="display: none;">
 
                     <div class="file-info" id="fileInfo" style="display: none;">
                         <p><strong>Archivo seleccionado:</strong> <span id="fileName"></span></p>
@@ -56,9 +56,10 @@
                 </section>
 
                 <!-- Results Section -->
-                <section class="card results-section" id="resultsSection" style="display: none;">
+                <section class="card results-section" id="results-section" style="display: none;">
                     <h2><i class="fas fa-check-circle"></i> Resultado de Clasificación</h2>
                     
+                    <div id="result-content">
                     <div class="result-main">
                         <div class="result-class">
                             <p class="label">Tipo de Nube Identificada:</p>
@@ -88,6 +89,7 @@
                     <button class="btn btn-secondary" onclick="resetUpload()">
                         <i class="fas fa-plus"></i> Clasificar otra imagen
                     </button>
+                    </div>
                 </section>
             </div>
 
@@ -119,7 +121,7 @@
                     <h3>Sobre Este Proyecto</h3>
                     <p>CloudClassify13 es un sistema de clasificación automática de tipos de nubes usando Deep Learning.</p>
                     <p><strong>Grupo #13 - Inteligencia Artificial</strong></p>
-                    <p>Universid ad - Asignatura: Inteligencia Artificial</p>
+                    <p>Universidad Mayor de San Simon - Asignatura: Inteligencia Artificial</p>
                 </div>
             </section>
         </main>

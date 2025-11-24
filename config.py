@@ -78,6 +78,7 @@ EPOCHS = 50
 
 # Optimizer: 'adam', 'sgd', 'rmsprop'
 OPTIMIZER_TYPE = 'adam'
+OPTIMIZER = 'adam'  # Alias para compatibilidad
 
 # Loss function: 'crossentropy', 'focal_loss'
 LOSS_FUNCTION = 'crossentropy'
@@ -89,6 +90,7 @@ EARLY_STOPPING_MIN_DELTA = 0.001
 # Learning rate scheduler
 USE_LR_SCHEDULER = True
 LR_SCHEDULER_TYPE = 'cosine'  # 'cosine', 'step', 'exponential'
+SCHEDULER = 'cosine'  # Alias para compatibilidad
 LR_SCHEDULER_T_MAX = 30  # Para CosineAnnealingLR
 
 # ==================== DATA AUGMENTATION ====================

@@ -50,62 +50,86 @@ const CLOUD_DESCRIPTIONS = {
     }
 };
 
-// DOM Elements
-const uploadArea = document.getElementById('upload-area');
-const fileInput = document.getElementById('file-input');
-const uploadSection = document.getElementById('upload-section');
-const resultsSection = document.getElementById('results-section');
-const resultContent = document.getElementById('result-content');
+// Global variables
+let uploadArea, fileInput, uploadSection, resultsSection, resultContent;
+let selectedFile = null;
+let selectedImageDataURL = null; // Para guardar la imagen
 
-// Event Listeners
-uploadArea.addEventListener('click', () => fileInput.click());
-uploadArea.addEventListener('dragover', handleDragOver);
-uploadArea.addEventListener('dragleave', handleDragLeave);
-uploadArea.addEventListener('drop', handleDrop);
-fileInput.addEventListener('change', handleFileSelect);
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Get DOM elements
+    uploadArea = document.getElementById('upload-area');
+    fileInput = document.getElementById('file-input');
+    uploadSection = document.getElementById('upload-section');
+    resultsSection = document.getElementById('results-section');
+    resultContent = document.getElementById('result-content');
 
-// Drag and Drop Handlers
-function handleDragOver(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    uploadArea.style.borderColor = '#1e40af';
-    uploadArea.style.background = '#eff6ff';
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Load cloud types
+    loadCloudTypes();
+    loadProjectInfo();
+});
+
+function setupEventListeners() {
+    // Click to upload
+    uploadArea.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.click();
+    });
+
+    // File input change
+    fileInput.addEventListener('change', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.target.files && e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('drag-over');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
+
+    // Prevent default drag/drop on document
+    document.addEventListener('dragover', function(e) {
+        e.preventDefault();
+    });
+
+    document.addEventListener('drop', function(e) {
+        e.preventDefault();
+    });
 }
 
-function handleDragLeave(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    uploadArea.style.borderColor = '#2563eb';
-    uploadArea.style.background = '#f3f4f6';
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    uploadArea.style.borderColor = '#2563eb';
-    uploadArea.style.background = '#f3f4f6';
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        fileInput.files = files;
-        processFile(files[0]);
-    }
-}
-
-function handleFileSelect(e) {
-    if (e.target.files.length > 0) {
-        processFile(e.target.files[0]);
-    }
-}
-
-// File Processing
-function processFile(file) {
+// Handle file selection
+function handleFileSelect(file) {
     // Validate file
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp'];
     const maxSize = 10 * 1024 * 1024; // 10MB
 
-    if (!validTypes.includes(file.type)) {
-        showError('Formato de archivo no válido. Use JPG, PNG, WebP o GIF.');
+    if (!validTypes.includes(file.type.toLowerCase())) {
+        showError('Formato de archivo no válido. Use JPG, PNG, WebP, GIF o BMP.');
         return;
     }
 
@@ -114,14 +138,36 @@ function processFile(file) {
         return;
     }
 
-    // Show loading
-    showLoading();
+    selectedFile = file;
 
-    // Send to server
+    // Show preview
+    showImagePreview(file);
+
+    // Upload automatically
     uploadImage(file);
 }
 
+// Show image preview
+function showImagePreview(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        selectedImageDataURL = e.target.result; // Guardar para mostrar después
+        uploadArea.innerHTML = `
+            <div class="image-preview" style="text-align: center;">
+                <img src="${e.target.result}" alt="Preview" style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="margin-top: 10px; font-size: 14px; color: #666; font-weight: 500;">${file.name}</p>
+            </div>
+        `;
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+// Upload image
 function uploadImage(file) {
+    showLoading();
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -131,7 +177,9 @@ function uploadImage(file) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(data => {
+                throw new Error(data.error || `Error HTTP: ${response.status}`);
+            });
         }
         return response.json();
     })
@@ -139,7 +187,7 @@ function uploadImage(file) {
         if (data.success) {
             displayResults(data);
         } else {
-            showError(data.error || 'Error en la predicción');
+            showError(data.error || 'Error desconocido en la predicción');
         }
     })
     .catch(error => {
@@ -150,30 +198,40 @@ function uploadImage(file) {
 
 // Display Results
 function displayResults(data) {
-    const prediction = data.prediction;
+    const prediction = data.predicted_class;
     const confidence = data.confidence;
-    const top_k = data.top_k || [];
+    const top_k = data.top_predictions || [];
 
     // Main prediction
-    const cloudInfo = CLOUD_DESCRIPTIONS[prediction] || { name: prediction, description: '' };
+    const cloudInfo = CLOUD_DESCRIPTIONS[prediction] || { name: prediction, description: 'Descripción no disponible.' };
     
     let html = `
+        <!-- Imagen subida -->
+        ${selectedImageDataURL ? `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${selectedImageDataURL}" alt="Imagen analizada" style="max-width: 100%; max-height: 400px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        </div>
+        ` : ''}
+
         <div class="result-main">
             <div class="result-class">
-                <div class="label">Predicción Principal</div>
-                <h3>${prediction}</h3>
-                <div class="class-code">${cloudInfo.name}</div>
+                <div class="label">Tipo de Nube Identificada</div>
+                <h3 style="color: #1e40af; font-size: 2.5em; margin: 10px 0;">${prediction}</h3>
+                <div class="class-code" style="font-size: 1.2em; color: #666;">${cloudInfo.name}</div>
             </div>
 
-            <div class="confidence-bar">
-                <div class="confidence-fill" style="width: ${confidence * 100}%"></div>
+            <div class="confidence-section" style="margin: 20px 0;">
+                <div class="label">Nivel de Confianza</div>
+                <div class="confidence-bar" style="background: #e5e7eb; height: 30px; border-radius: 15px; overflow: hidden; margin: 10px 0;">
+                    <div class="confidence-fill" style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: 0%; transition: width 1s ease;"></div>
+                </div>
+                <div class="confidence-text" style="font-size: 1.5em; font-weight: bold; color: #059669;">${(confidence * 100).toFixed(1)}%</div>
             </div>
-            <div class="confidence-text">Confianza: ${(confidence * 100).toFixed(1)}%</div>
         </div>
 
-        <div class="result-description">
+        <div class="result-description" style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <h4><i class="fas fa-cloud"></i> Descripción</h4>
-            <p>${cloudInfo.description}</p>
+            <p style="line-height: 1.6;">${cloudInfo.description}</p>
         </div>
 
         <div class="result-detailed">
@@ -183,16 +241,22 @@ function displayResults(data) {
 
     top_k.forEach((item, index) => {
         const itemCode = item.class;
-        const itemConf = item.confidence;
-        const isActive = index === 0 ? 'active' : '';
+        const itemConf = item.probability;
+        const itemName = CLOUD_DESCRIPTIONS[itemCode]?.name || itemCode;
+        const bgColor = index === 0 ? '#e0f2fe' : '#f9fafb';
         
         html += `
-            <div class="prediction-item ${isActive}">
-                <div class="prediction-class">${itemCode}</div>
-                <div class="prediction-bar">
-                    <div class="prediction-bar-fill" style="width: ${itemConf * 100}%"></div>
+            <div class="prediction-item" style="background: ${bgColor}; padding: 12px; margin: 8px 0; border-radius: 8px; border-left: 4px solid ${index === 0 ? '#0284c7' : '#cbd5e1'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <div>
+                        <span style="font-weight: bold; font-size: 1.1em;">${itemCode}</span>
+                        <span style="color: #666; margin-left: 8px;">${itemName}</span>
+                    </div>
+                    <span style="font-weight: bold; color: #059669;">${(itemConf * 100).toFixed(1)}%</span>
                 </div>
-                <div class="prediction-percent">${(itemConf * 100).toFixed(1)}%</div>
+                <div class="prediction-bar" style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
+                    <div class="prediction-bar-fill" style="background: #10b981; height: 100%; width: ${itemConf * 100}%; transition: width 0.5s ease;"></div>
+                </div>
             </div>
         `;
     });
@@ -201,14 +265,14 @@ function displayResults(data) {
             </div>
         </div>
 
-        <button class="btn btn-secondary" onclick="resetUpload()">
-            <i class="fas fa-redo"></i> Nueva Clasificación
+        <button class="btn btn-secondary" onclick="resetUpload()" style="margin-top: 20px; width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+            <i class="fas fa-redo"></i> Clasificar otra imagen
         </button>
     `;
 
     resultContent.innerHTML = html;
     resultsSection.style.display = 'block';
-    uploadArea.style.display = 'none';
+    uploadSection.style.display = 'none';
     
     // Animate confidence bar
     setTimeout(() => {
@@ -221,41 +285,57 @@ function displayResults(data) {
 
 // Show Error
 function showError(message) {
-    resultsSection.style.display = 'block';
     resultContent.innerHTML = `
-        <div class="alert alert-error">
-            <i class="fas fa-exclamation-circle"></i>
-            <span>${message}</span>
+        <div class="alert alert-error" style="background: #fee; border: 2px solid #f87171; padding: 20px; border-radius: 8px; text-align: center;">
+            <i class="fas fa-exclamation-circle" style="font-size: 3em; color: #dc2626; margin-bottom: 10px;"></i>
+            <p style="font-size: 1.1em; color: #991b1b; margin: 10px 0;">${message}</p>
         </div>
-        <button class="btn btn-secondary" onclick="resetUpload()">
-            <i class="fas fa-redo"></i> Volver a Intentar
+        <button class="btn btn-secondary" onclick="resetUpload()" style="margin-top: 20px; width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+            <i class="fas fa-redo"></i> Intentar de nuevo
         </button>
     `;
-    uploadArea.style.display = 'none';
+    resultsSection.style.display = 'block';
+    uploadSection.style.display = 'none';
 }
 
 // Show Loading
 function showLoading() {
-    resultsSection.style.display = 'block';
     resultContent.innerHTML = `
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>Analizando imagen...</p>
+        <div class="loading" style="text-align: center; padding: 40px;">
+            <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+            <p style="margin-top: 20px; font-size: 1.2em; color: #666;">Analizando imagen...</p>
+            <p style="color: #999;">Esto puede tomar unos segundos</p>
         </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
     `;
-    uploadArea.style.display = 'none';
+    resultsSection.style.display = 'block';
+    uploadSection.style.display = 'none';
 }
 
 // Reset Upload
 function resetUpload() {
-    uploadArea.style.display = 'block';
+    uploadSection.style.display = 'block';
     resultsSection.style.display = 'none';
     resultContent.innerHTML = '';
+    selectedFile = null;
+    selectedImageDataURL = null; // Limpiar la imagen guardada
+    
+    // Reset file input
     fileInput.value = '';
     
-    // Reset upload area style
-    uploadArea.style.borderColor = '#2563eb';
-    uploadArea.style.background = '#f3f4f6';
+    // Reset upload area
+    uploadArea.innerHTML = `
+        <i class="fas fa-image" style="font-size: 4em; color: #94a3b8; margin-bottom: 15px;"></i>
+        <p><strong>Arrastra una imagen aquí</strong></p>
+        <p class="small">o haz clic para seleccionar</p>
+    `;
+    
+    uploadArea.classList.remove('drag-over');
 }
 
 // Load Cloud Classes Info
@@ -272,16 +352,16 @@ async function loadCloudTypes() {
 }
 
 function displayCloudTypes(classes) {
-    const cloudTypesGrid = document.querySelector('.cloud-types-grid');
+    const cloudTypesGrid = document.getElementById('cloudTypesList');
     if (!cloudTypesGrid) return;
 
     let html = '';
     classes.forEach(cloudClass => {
         const info = CLOUD_DESCRIPTIONS[cloudClass.code] || { name: cloudClass.name };
         html += `
-            <div class="cloud-type-badge">
-                <div class="cloud-type-code">${cloudClass.code}</div>
-                <div class="cloud-type-name">${info.name || cloudClass.name}</div>
+            <div class="cloud-type-badge" style="background: #f0f9ff; padding: 10px; margin: 5px; border-radius: 8px; text-align: center; border: 2px solid #bae6fd;">
+                <div class="cloud-type-code" style="font-weight: bold; font-size: 1.2em; color: #0284c7;">${cloudClass.code}</div>
+                <div class="cloud-type-name" style="font-size: 0.9em; color: #666;">${info.name || cloudClass.name}</div>
             </div>
         `;
     });
@@ -289,25 +369,30 @@ function displayCloudTypes(classes) {
     cloudTypesGrid.innerHTML = html;
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    loadCloudTypes();
-
-    // Prevent file input from reopening on drag
-    document.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    });
-
-    document.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    });
-});
+// Load Project Info
+async function loadProjectInfo() {
+    try {
+        const response = await fetch('/api/info');
+        if (!response.ok) throw new Error('Failed to load project info');
+        
+        const data = await response.json();
+        
+        // Update info sections
+        const numClassesEl = document.getElementById('numClasses');
+        const deviceInfoEl = document.getElementById('deviceInfo');
+        const imageSizeEl = document.getElementById('imageSize');
+        
+        if (numClassesEl) numClassesEl.textContent = `${data.num_classes} tipos`;
+        if (deviceInfoEl) deviceInfoEl.textContent = data.device;
+        if (imageSizeEl) imageSizeEl.textContent = `${data.image_size}×${data.image_size}px`;
+    } catch (error) {
+        console.error('Error loading project info:', error);
+    }
+}
 
 // Keyboard Support
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && resultsSection.style.display === 'block') {
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && resultsSection && resultsSection.style.display === 'block') {
         resetUpload();
     }
 });

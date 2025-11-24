@@ -165,6 +165,10 @@ def create_data_loaders(data_dir=DATA_DIR, batch_size=BATCH_SIZE, num_workers=4)
     if not data_dir.exists():
         raise ValueError(f"El directorio de datos no existe: {data_dir}")
     
+    # Detectar si hay GPU disponible para pin_memory
+    import torch
+    use_pin_memory = torch.cuda.is_available()
+    
     # Obtener transformaciones
     transforms_dict = get_transforms(augment=True)
     
@@ -211,7 +215,7 @@ def create_data_loaders(data_dir=DATA_DIR, batch_size=BATCH_SIZE, num_workers=4)
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        pin_memory=True
+        pin_memory=use_pin_memory
     )
     
     val_loader = DataLoader(
@@ -219,7 +223,7 @@ def create_data_loaders(data_dir=DATA_DIR, batch_size=BATCH_SIZE, num_workers=4)
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True
+        pin_memory=use_pin_memory
     )
     
     test_loader = DataLoader(
@@ -227,7 +231,7 @@ def create_data_loaders(data_dir=DATA_DIR, batch_size=BATCH_SIZE, num_workers=4)
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True
+        pin_memory=use_pin_memory
     )
     
     return train_loader, val_loader, test_loader, full_dataset.class_names

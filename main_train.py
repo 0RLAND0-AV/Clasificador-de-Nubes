@@ -10,10 +10,9 @@ import json
 import argparse
 from pathlib import Path
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 # Import custom modules
-from config import Config
+import config
 from model import CloudCNN
 from dataset import create_data_loaders
 from train import CloudClassifierTrainer
@@ -87,7 +86,7 @@ def setup_directories(config):
         class_dir = Path(config.DATA_DIR) / class_name
         class_dir.mkdir(parents=True, exist_ok=True)
     
-    print(f"✓ Directorios configurados en: {config.PROJECT_DIR}")
+    print(f"✓ Directorios configurados en: {config.PROJECT_ROOT}")
 
 
 def train_model(config, args):
@@ -130,7 +129,7 @@ def train_model(config, args):
     # Cargar datos
     print(f"\n📦 Cargando datos...")
     try:
-        train_loader, val_loader, test_loader = create_data_loaders(
+        train_loader, val_loader, test_loader, class_names = create_data_loaders(
             data_dir=config.DATA_DIR,
             batch_size=config.BATCH_SIZE,
             num_workers=0  # Windows compatible
@@ -160,8 +159,7 @@ def train_model(config, args):
     history = trainer.train(
         train_loader=train_loader,
         val_loader=val_loader,
-        epochs=config.EPOCHS,
-        early_stopping_patience=config.EARLY_STOPPING_PATIENCE
+        epochs=config.EPOCHS
     )
     
     # Guardar historia
@@ -172,8 +170,9 @@ def train_model(config, args):
     
     # Evaluar en test set
     print(f"\n📈 Evaluando en conjunto de prueba...")
-    test_accuracy = trainer.validate(test_loader)
-    print(f"  • Accuracy en test: {test_accuracy:.4f}")
+    test_loss, test_accuracy = trainer.validate(test_loader)
+    print(f"  • Loss en test: {test_loss:.4f}")
+    print(f"  • Accuracy en test: {test_accuracy:.2f}%")
     
     # Resumen final
     print(f"\n" + "="*60)
@@ -212,7 +211,7 @@ def evaluate_model(config, args):
     
     # Cargar datos
     print(f"\n📦 Cargando datos...")
-    _, _, test_loader = create_data_loaders(
+    _, _, test_loader, _ = create_data_loaders(
         data_dir=config.DATA_DIR,
         batch_size=config.BATCH_SIZE,
         num_workers=0
@@ -225,8 +224,9 @@ def evaluate_model(config, args):
         checkpoint_dir=config.MODELS_DIR
     )
     
-    accuracy = trainer.validate(test_loader)
-    print(f"\n✓ Accuracy en test set: {accuracy:.4f}")
+    test_loss, test_accuracy = trainer.validate(test_loader)
+    print(f"\n✓ Loss en test set: {test_loss:.4f}")
+    print(f"✓ Accuracy en test set: {test_accuracy:.2f}%")
 
 
 def predict_image(config, args):
@@ -295,9 +295,6 @@ def main():
     """Función principal."""
     parser = create_argument_parser()
     args = parser.parse_args()
-    
-    # Crear configuración
-    config = Config()
     
     # Setup
     setup_directories(config)

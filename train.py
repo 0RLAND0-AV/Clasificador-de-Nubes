@@ -40,7 +40,8 @@ class CloudClassifierTrainer:
     - Logging de métricas
     """
     
-    def __init__(self, model, device='cpu', learning_rate=LEARNING_RATE):
+    def __init__(self, model, device='cpu', learning_rate=LEARNING_RATE, 
+                 optimizer_name=None, scheduler_name=None, checkpoint_dir=None, verbose=False):
         """
         Inicializa el entrenador.
         
@@ -48,13 +49,23 @@ class CloudClassifierTrainer:
             model: Modelo a entrenar
             device: Dispositivo ('cpu' o 'cuda')
             learning_rate: Tasa de aprendizaje inicial
+            optimizer_name: Nombre del optimizer ('adam', 'sgd', 'rmsprop')
+            scheduler_name: Nombre del scheduler ('cosine', 'step', 'exponential')
+            checkpoint_dir: Directorio para guardar checkpoints
+            verbose: Modo verbose
         """
         self.model = model
         self.device = device
         self.learning_rate = learning_rate
+        self.verbose = verbose
+        self.checkpoint_dir = checkpoint_dir or MODELS_DIR
+        self.best_checkpoint_path = None
+        
+        # Determinar optimizer
+        optimizer_type = optimizer_name or OPTIMIZER_TYPE
         
         # Configurar optimizer
-        if OPTIMIZER_TYPE.lower() == 'adam':
+        if optimizer_type.lower() == 'adam':
             self.optimizer = optim.Adam(
                 self.model.parameters(),
                 lr=learning_rate,
@@ -74,23 +85,26 @@ class CloudClassifierTrainer:
                 weight_decay=WEIGHT_DECAY
             )
         else:
-            raise ValueError(f"Optimizer no soportado: {OPTIMIZER_TYPE}")
+            raise ValueError(f"Optimizer no soportado: {optimizer_type}")
+        
+        # Determinar scheduler
+        scheduler_type = scheduler_name or LR_SCHEDULER_TYPE
         
         # Configurar scheduler (opcional)
         self.scheduler = None
         if USE_LR_SCHEDULER:
-            if LR_SCHEDULER_TYPE == 'cosine':
+            if scheduler_type == 'cosine':
                 self.scheduler = CosineAnnealingLR(
                     self.optimizer,
                     T_max=LR_SCHEDULER_T_MAX
                 )
-            elif LR_SCHEDULER_TYPE == 'step':
+            elif scheduler_type == 'step':
                 self.scheduler = StepLR(
                     self.optimizer,
                     step_size=10,
                     gamma=0.1
                 )
-            elif LR_SCHEDULER_TYPE == 'exponential':
+            elif scheduler_type == 'exponential':
                 self.scheduler = ExponentialLR(
                     self.optimizer,
                     gamma=0.95
@@ -271,12 +285,13 @@ class CloudClassifierTrainer:
             epoch: Número de época
             best: Si es True, guarda como mejor modelo
         """
-        Path(MODELS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
         
         if best:
-            checkpoint_path = MODEL_PATH
+            checkpoint_path = Path(self.checkpoint_dir) / "cloud_classifier_best.pth"
+            self.best_checkpoint_path = str(checkpoint_path)
         else:
-            checkpoint_path = MODELS_DIR / f"checkpoint_epoch_{epoch+1}.pth"
+            checkpoint_path = Path(self.checkpoint_dir) / f"checkpoint_epoch_{epoch+1}.pth"
         
         torch.save({
             'epoch': epoch,
@@ -290,9 +305,9 @@ class CloudClassifierTrainer:
     def save_model(self, path=None):
         """Guarda el modelo entrenado."""
         if path is None:
-            path = MODEL_PATH
+            path = Path(self.checkpoint_dir) / "cloud_classifier_best.pth"
         
-        Path(MODELS_DIR).mkdir(parents=True, exist_ok=True)
+        Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path)
         print(f"✓ Modelo guardado en: {path}")
     
@@ -309,7 +324,7 @@ class CloudClassifierTrainer:
     def save_history(self, path=None):
         """Guarda el historial de entrenamiento."""
         if path is None:
-            path = MODELS_DIR / "training_history.json"
+            path = Path(self.checkpoint_dir) / "training_history.json"
         
         with open(path, 'w') as f:
             json.dump(self.history, f, indent=4)
