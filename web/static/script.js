@@ -201,57 +201,56 @@ function displayResults(data) {
     const prediction = data.predicted_class;
     const confidence = data.confidence;
     const top_k = data.top_predictions || [];
-    const warning = data.warning;  // Advertencia si no es nube
-    const isLikelyCloud = data.is_likely_cloud !== false;  // Por defecto true
+    const warning = data.warning;
+    const isLikelyCloud = data.is_likely_cloud !== false;
 
-    // Main prediction
     const cloudInfo = CLOUD_DESCRIPTIONS[prediction] || { name: prediction, description: 'Descripción no disponible.' };
     
     let html = `
-        <!-- Imagen subida -->
-        ${selectedImageDataURL ? `
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${selectedImageDataURL}" alt="Imagen analizada" style="max-width: 100%; max-height: 400px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-        </div>
-        ` : ''}
-        
-        <!-- Advertencia si no es nube -->
-        ${!isLikelyCloud ? `
-        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 1.5em;"></i>
-                <div>
-                    <strong style="color: #92400e;">Advertencia:</strong>
-                    <p style="margin: 5px 0 0 0; color: #78350f;">${warning || 'La confianza es baja. Asegúrate de que la imagen contenga nubes visibles.'}</p>
+        <div class="results-grid">
+            <!-- Imagen a la izquierda -->
+            <div class="image-column">
+                ${selectedImageDataURL ? `
+                <img src="${selectedImageDataURL}" alt="Imagen analizada" class="analyzed-image">
+                ` : ''}
+            </div>
+            
+            <!-- Resultados a la derecha -->
+            <div class="results-column">
+                ${!isLikelyCloud ? `
+                <div class="warning-box">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Advertencia:</strong>
+                        <p>${warning || 'La confianza es baja. Asegúrate de que la imagen contenga nubes visibles.'}</p>
+                    </div>
                 </div>
-            </div>
-        </div>
-        ` : ''}
+                ` : ''}
+                
+                <div class="result-main">
+                    <div class="result-class">
+                        <div class="label">Tipo de Nube Identificada</div>
+                        <h3 style="color: #1e40af; font-size: 2.5em; margin: 10px 0;">${prediction}</h3>
+                        <div class="class-code" style="font-size: 1.2em; color: #666;">${cloudInfo.name}</div>
+                    </div>
 
-        <div class="result-main">
-            <div class="result-class">
-                <div class="label">Tipo de Nube Identificada</div>
-                <h3 style="color: #1e40af; font-size: 2.5em; margin: 10px 0;">${prediction}</h3>
-                <div class="class-code" style="font-size: 1.2em; color: #666;">${cloudInfo.name}</div>
-            </div>
-
-            <div class="confidence-section" style="margin: 20px 0;">
-                <div class="label">Nivel de Confianza</div>
-                <div class="confidence-bar" style="background: #e5e7eb; height: 30px; border-radius: 15px; overflow: hidden; margin: 10px 0;">
-                    <div class="confidence-fill" style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: 0%; transition: width 1s ease;"></div>
+                    <div class="confidence-section" style="margin: 20px 0;">
+                        <div class="label">Nivel de Confianza</div>
+                        <div class="confidence-bar" style="background: #e5e7eb; height: 30px; border-radius: 15px; overflow: hidden; margin: 10px 0;">
+                            <div class="confidence-fill" style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: 0%; transition: width 1s ease;"></div>
+                        </div>
+                        <div class="confidence-text" style="font-size: 1.5em; font-weight: bold; color: #059669;">${(confidence * 100).toFixed(1)}%</div>
+                    </div>
                 </div>
-                <div class="confidence-text" style="font-size: 1.5em; font-weight: bold; color: #059669;">${(confidence * 100).toFixed(1)}%</div>
-            </div>
-        </div>
+                
+                <div class="result-description" style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <h4><i class="fas fa-cloud"></i> Descripción</h4>
+                    <p style="line-height: 1.6;">${cloudInfo.description}</p>
+                </div>
 
-        <div class="result-description" style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h4><i class="fas fa-cloud"></i> Descripción</h4>
-            <p style="line-height: 1.6;">${cloudInfo.description}</p>
-        </div>
-
-        <div class="result-detailed">
-            <h4><i class="fas fa-list"></i> Top 3 Predicciones</h4>
-            <div class="top-predictions">
+                <div class="result-detailed">
+                    <h4><i class="fas fa-list"></i> Top 3 Predicciones</h4>
+                    <div class="top-predictions">
     `;
 
     top_k.forEach((item, index) => {
@@ -277,12 +276,14 @@ function displayResults(data) {
     });
 
     html += `
+                    </div>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="resetUpload()" style="margin-top: 20px; width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-redo"></i> Clasificar otra imagen
+                </button>
             </div>
         </div>
-
-        <button class="btn btn-secondary" onclick="resetUpload()" style="margin-top: 20px; width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-            <i class="fas fa-redo"></i> Clasificar otra imagen
-        </button>
     `;
 
     resultContent.innerHTML = html;

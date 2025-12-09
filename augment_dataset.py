@@ -20,26 +20,23 @@ from config import DATA_DIR, IMAGE_SIZE, CLASS_NAMES
 
 def get_augmentation_transforms():
     """
-    Retorna transformaciones agresivas para data augmentation.
+    Transformaciones CONSERVADORAS para data augmentation.
+    Prioriza preservar características de las nubes.
     """
     return transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+        # Solo transformaciones geométricas suaves
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.3),
-        transforms.RandomRotation(degrees=30),
+        transforms.RandomRotation(degrees=15),  # Reducido de 30
+        # Sin cambios de color agresivos
         transforms.ColorJitter(
-            brightness=0.3,
-            contrast=0.3,
-            saturation=0.2,
-            hue=0.1
+            brightness=0.15,   # Muy reducido
+            contrast=0.15,     # Muy reducido
+            saturation=0.0,    # Desactivado
+            hue=0.0           # Desactivado
         ),
-        transforms.RandomAffine(
-            degrees=0,
-            translate=(0.1, 0.1),
-            scale=(0.9, 1.1),
-            shear=10
-        ),
-        transforms.RandomPerspective(distortion_scale=0.2, p=0.3),
+        # Convertir a PIL para guardar
+        transforms.ToPILImage() if False else lambda x: x,  # No-op, ya es PIL
     ])
 
 

@@ -66,15 +66,15 @@ CONV_LAYERS = [
 # Arquitectura de capas completamente conectadas
 FC_LAYERS = [512, 256, 128]
 
-# Dropout rate (regularización)
-DROPOUT_RATE = 0.5
+# Dropout rate (regularización) - aumentado para evitar overfitting
+DROPOUT_RATE = 0.6  # Aumentado de 0.5
 
 # ==================== PARÁMETROS DE ENTRENAMIENTO ====================
 # Hiperparámetros de optimización
-BATCH_SIZE = 32
-LEARNING_RATE = 0.001
+BATCH_SIZE = 16          # Reducido de 32 (mejor para datasets pequeños)
+LEARNING_RATE = 0.0005   # Reducido de 0.001 (aprendizaje más lento pero estable)
 WEIGHT_DECAY = 1e-4
-EPOCHS = 50
+EPOCHS = 100
 
 # Optimizer: 'adam', 'sgd', 'rmsprop'
 OPTIMIZER_TYPE = 'adam'
@@ -84,7 +84,7 @@ OPTIMIZER = 'adam'  # Alias para compatibilidad
 LOSS_FUNCTION = 'crossentropy'
 
 # Early stopping
-EARLY_STOPPING_PATIENCE = 25
+EARLY_STOPPING_PATIENCE = 30  # Aumentado de 25 a 30
 EARLY_STOPPING_MIN_DELTA = 0.001
 
 # Learning rate scheduler
@@ -94,19 +94,19 @@ SCHEDULER = 'cosine'  # Alias para compatibilidad
 LR_SCHEDULER_T_MAX = 30  # Para CosineAnnealingLR
 
 # ==================== DATA AUGMENTATION ====================
-# Técnicas de aumento de datos
+# Técnicas de aumento de datos (aplicadas EN TIEMPO REAL durante entrenamiento)
 USE_DATA_AUGMENTATION = True
 AUGMENTATION_PARAMS = {
     'random_horizontal_flip': True,
-    'random_vertical_flip': False,
-    'random_rotation': 15,           # Grados máximos de rotación
-    'random_crop': True,
-    'random_brightness': 0.2,        # Factor de brillo
-    'random_contrast': 0.2,          # Factor de contraste
-    'random_saturation': 0.2,        # Factor de saturación
-    'random_hue': 0.1,               # Factor de matiz
+    'random_vertical_flip': False,     # Las nubes no se voltean verticalmente
+    'random_rotation': 20,              # Aumentado de 15 a 20 grados
+    'random_crop': False,               # Desactivado para no perder info
+    'random_brightness': 0.15,          # Reducido para preservar características
+    'random_contrast': 0.15,            # Reducido para preservar características
+    'random_saturation': 0.0,           # Desactivado - color es importante
+    'random_hue': 0.0,                  # Desactivado - tono es importante
     'gaussian_blur': False,
-    'gaussian_blur_kernel': 5,       # Tamaño del kernel
+    'gaussian_blur_kernel': 5,
 }
 
 # Normalización (estadísticas de ImageNet)

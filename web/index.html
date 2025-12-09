@@ -20,78 +20,47 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="grid">
-                <!-- Upload Section -->
-                <section class="card upload-section" id="upload-section">
-                    <h2><i class="fas fa-upload"></i> Sube una imagen de nube</h2>
-                    
-                    {% if not model_loaded %}
-                    <div class="alert alert-error">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p><strong>Error:</strong> El modelo no está cargado. Por favor, contacta al administrador.</p>
-                    </div>
-                    {% endif %}
+            <!-- Upload Section -->
+            <section class="card upload-section" id="upload-section">
+                <h2><i class="fas fa-upload"></i> Sube una imagen de nube</h2>
+                
+                {% if not model_loaded %}
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p><strong>Error:</strong> El modelo no está cargado. Por favor, contacta al administrador.</p>
+                </div>
+                {% endif %}
 
-                    <div class="upload-area" id="upload-area">
-                        <i class="fas fa-image"></i>
-                        <p><strong>Arrastra una imagen aquí</strong></p>
-                        <p class="small">o haz clic para seleccionar</p>
-                    </div>
-                    <input type="file" id="file-input" accept="image/*" style="display: none;">
+                <div class="upload-area" id="upload-area">
+                    <i class="fas fa-image"></i>
+                    <p><strong>Arrastra una imagen aquí</strong></p>
+                    <p class="small">o haz clic para seleccionar</p>
+                </div>
+                <input type="file" id="file-input" accept="image/*" style="display: none;">
 
-                    <div class="file-info" id="fileInfo" style="display: none;">
-                        <p><strong>Archivo seleccionado:</strong> <span id="fileName"></span></p>
-                        <button class="btn btn-primary" id="predictBtn">
-                            <i class="fas fa-magic"></i> Clasificar Imagen
-                        </button>
-                        <button class="btn btn-secondary" onclick="resetUpload()">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
-                    </div>
-
-                    <div class="loading" id="loading" style="display: none;">
-                        <div class="spinner"></div>
-                        <p>Clasificando imagen...</p>
-                    </div>
-                </section>
-
-                <!-- Results Section -->
-                <section class="card results-section" id="results-section" style="display: none;">
-                    <h2><i class="fas fa-check-circle"></i> Resultado de Clasificación</h2>
-                    
-                    <div id="result-content">
-                    <div class="result-main">
-                        <div class="result-class">
-                            <p class="label">Tipo de Nube Identificada:</p>
-                            <h3 id="predictedClass"></h3>
-                            <p class="class-code" id="predictedCode"></p>
-                        </div>
-
-                        <div class="result-confidence">
-                            <p class="label">Confianza:</p>
-                            <div class="confidence-bar">
-                                <div class="confidence-fill" id="confidenceFill"></div>
-                            </div>
-                            <p class="confidence-text" id="confidenceText"></p>
-                        </div>
-                    </div>
-
-                    <div class="result-description">
-                        <h4>Descripción de la Nube:</h4>
-                        <p id="classDescription"></p>
-                    </div>
-
-                    <div class="result-detailed">
-                        <h4>Predicciones Detalladas:</h4>
-                        <div id="topPredictions" class="top-predictions"></div>
-                    </div>
-
-                    <button class="btn btn-secondary" onclick="resetUpload()">
-                        <i class="fas fa-plus"></i> Clasificar otra imagen
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <p><strong>Archivo seleccionado:</strong> <span id="fileName"></span></p>
+                    <button class="btn btn-primary" id="predictBtn">
+                        <i class="fas fa-magic"></i> Clasificar Imagen
                     </button>
-                    </div>
-                </section>
-            </div>
+                    <button class="btn btn-secondary" onclick="resetUpload()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Clasificando imagen...</p>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="card results-section" id="results-section" style="display: none;">
+                <h2><i class="fas fa-check-circle"></i> Resultado de Clasificación</h2>
+                
+                <div id="result-content">
+                </div>
+            </section>
 
             <!-- Info Section -->
             <section class="card info-section">
