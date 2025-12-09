@@ -1,10 +1,50 @@
 """
-CloudClassify13 - Generador de Dataset Aumentado
-=================================================
-Genera múltiples versiones de cada imagen usando Data Augmentation
-para aumentar el tamaño del dataset de entrenamiento.
+CloudClassify13 - Generador de Dataset Aumentado (OFFLINE AUGMENTATION)
+========================================================================
 
-Uso:
+⚠️⚠️⚠️ ADVERTENCIA IMPORTANTE - NO USAR ESTE SCRIPT ⚠️⚠️⚠️
+
+Este script NO debe ejecutarse en el proyecto actual porque:
+
+❌ PROBLEMA: DATA LEAKAGE
+--------------------------
+1. Genera imágenes aumentadas ANTES del split train/val/test
+2. Imágenes similares terminan en diferentes splits
+3. El modelo "ve" la misma nube en train, validation y test
+4. Accuracy cae de 43.75% a 22-28% (comprobado experimentalmente)
+
+❌ RESULTADOS EXPERIMENTALES:
+-----------------------------
+- Sin augmentation:        37.5% accuracy (baseline)
+- Offline aug (10x):       22.95% accuracy ← PEOR
+- Offline aug (5x):        28.28% accuracy ← PEOR  
+- Online aug (recomendado): 43.75% accuracy ← MEJOR ✅
+
+✅ ALTERNATIVA CORRECTA:
+------------------------
+Usar ONLINE AUGMENTATION (ya implementado en dataset.py):
+- Transformaciones se aplican durante el entrenamiento
+- Split se hace ANTES de la augmentación
+- Cada época ve variaciones diferentes
+- NO hay data leakage
+
+📚 MÁS INFORMACIÓN:
+-------------------
+Ver: ADVERTENCIA_AUGMENTATION.md para explicación detallada
+
+🔒 RAZÓN DE EXISTENCIA:
+------------------------
+Este archivo se mantiene SOLO como:
+1. Referencia educativa sobre data leakage
+2. Ejemplo de qué NO hacer en ML
+3. Documentación de experimentos fallidos
+
+⚠️ NO EJECUTAR: python augment_dataset.py
+✅ USAR EN SU LUGAR: dataset.py (online augmentation)
+
+========================================================================
+
+Uso (NO RECOMENDADO):
     python augment_dataset.py --multiplier 10
 """
 

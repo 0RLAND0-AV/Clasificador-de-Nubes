@@ -5,20 +5,34 @@ Universidad: [Tu Universidad]
 Curso: Inteligencia Artificial / Machine Learning  
 Año: 2025
 
+## 📊 Estado Actual del Modelo
+
+**Última Actualización**: Diciembre 2025
+
+- ✅ **Modelo Funcional**: `cloud_classifier_best.pth`
+- 📈 **Accuracy**: **43.75%** en validación
+- 🎯 **Dataset**: 111 imágenes (11 clases × ~10 imágenes/clase)
+- 🔧 **Configuración Optimizada**: Batch=16, LR=0.0005, Dropout=0.6
+- ⚡ **GPU Support**: CUDA compatible (opcional)
+
+> ⚠️ **Nota**: El accuracy actual (43.75%) es el mejor resultado con el dataset pequeño disponible. 
+> Para mejorar significativamente se necesitaría un dataset más grande (500-1000 imágenes por clase).
+
 ## 📋 Descripción
 
-CloudClassify13 es un sistema de clasificación automática de tipos de nubes basado en redes neuronales convolucionales (CNN). El proyecto combina un backend de machine learning en PyTorch con una interfaz web HTML/CSS/JavaScript para clasificar imágenes de nubes en 11 categorías estándar de la Organización Meteorológica Mundial (OMM/WMO).
+CloudClassify13 es un sistema de clasificación automática de tipos de nubes basado en redes neuronales convolucionales (CNN). El proyecto combina un backend de machine learning en PyTorch con una interfaz web moderna HTML/CSS/JavaScript para clasificar imágenes de nubes en 11 categorías estándar de la Organización Meteorológica Mundial (OMM/WMO).
 
 ### Características Principales
 
 - ✅ **CNN Custom**: Red neuronal convolucional diseñada específicamente para clasificación de nubes
 - ✅ **11 Clases de Nubes**: Clasificación según estándares WMO/OMM
-- ✅ **Interfaz Web**: Carga de imágenes y visualización de resultados en tiempo real
+- ✅ **Interfaz Web Moderna**: Diseño de dos columnas con visualización optimizada de resultados
 - ✅ **API REST**: Endpoints para integración en otras aplicaciones
 - ✅ **Pipeline Modular**: Código organizado en módulos independientes
-- ✅ **Data Augmentation**: Técnicas de aumentación de datos para mejor generalización
-- ✅ **Early Stopping**: Prevención de overfitting durante entrenamiento
+- ✅ **Online Data Augmentation**: Aumentación en tiempo real durante entrenamiento
+- ✅ **Early Stopping**: Prevención de overfitting (patience=30)
 - ✅ **GPU/CPU**: Soporte automático para aceleración GPU (CUDA)
+- ✅ **Detección de No-Nubes**: Sistema de threshold para detectar imágenes sin nubes
 
 ## 🏗️ Arquitectura
 
@@ -47,28 +61,48 @@ CloudCNN Architecture:
 ├── Conv Block 3: Conv2d(128, 256) → BatchNorm2d(256) → ReLU → MaxPool2d
 ├── Conv Block 4: Conv2d(256, 512) → BatchNorm2d(512) → ReLU → MaxPool2d
 ├── Flatten: 512 × 14 × 14 = 100,352 features
-├── FC1: Linear(100352, 512) → ReLU → Dropout(0.5)
-├── FC2: Linear(512, 256) → ReLU → Dropout(0.5)
-├── FC3: Linear(256, 128) → ReLU → Dropout(0.5)
-└── Output: Linear(128, 11) → Logits (sin Softmax, se aplica en CrossEntropyLoss)
+├── FC1: Linear(100352, 512) → ReLU → Dropout(0.6)
+├── FC2: Linear(512, 256) → ReLU → Dropout(0.6)
+├── FC3: Linear(256, 128) → ReLU → Dropout(0.6)
+└── Output: Linear(128, 11) → Logits
 ```
 
 **Parámetros:**
-- Total: ~100,000 parámetros
-- Entrada: 224×224 RGB
-- Salida: 11 clases
+- Total: **53,099,275 parámetros**
+- Entrada: **224×224 RGB**
+- Salida: **11 clases**
+- Dropout: **0.6** (optimizado para dataset pequeño)
+
+### Configuración de Entrenamiento Optimizada
+
+**Hiperparámetros actuales** (optimizados para 111 imágenes):
+
+```python
+BATCH_SIZE = 16              # Reducido de 32 para dataset pequeño
+LEARNING_RATE = 0.0005       # Reducido de 0.001 para convergencia más suave
+DROPOUT_RATE = 0.6           # Aumentado de 0.5 para prevenir overfitting
+EARLY_STOPPING_PATIENCE = 30 # Aumentado de 10 para dar más tiempo al modelo
+NO_CLOUD_THRESHOLD = 0.25    # Threshold para detectar imágenes sin nubes
+```
+
+**Mejoras implementadas**:
+- ✅ Batch size reducido para datasets pequeños
+- ✅ Learning rate más bajo para mejor convergencia
+- ✅ Dropout más alto contra overfitting
+- ✅ Early stopping con paciencia extendida
+- ✅ Sistema de detección de no-nubes
 
 ### Pipeline de Datos
 
 ```
 Raw Images (224×224 RGB)
     ↓
-Transformaciones (Train):
+Transformaciones (Train) - ONLINE AUGMENTATION:
   • Resize a 224×224
-  • Random Horizontal Flip
+  • Random Horizontal Flip (p=0.5)
   • Random Rotation (±15°)
-  • Random Crop
-  • ColorJitter (brightness, contrast, saturation, hue)
+  • ColorJitter (brightness=0.15, contrast=0.15)
+  • ToTensor
   ↓
 Normalización (ImageNet):
   • mean = [0.485, 0.456, 0.406]
@@ -76,28 +110,75 @@ Normalización (ImageNet):
     ↓
 Tensores PyTorch
     ↓
-DataLoader (Batch size: 32)
+DataLoader (Batch size: 16)
     ↓
 Modelo CNN
 ```
 
+**⚠️ IMPORTANTE - Data Augmentation**:
+
+El proyecto incluye `augment_dataset.py` pero **NO SE RECOMIENDA SU USO**:
+
+- ❌ **Offline Augmentation**: Genera imágenes aumentadas permanentemente
+- ❌ **Data Leakage**: Crea imágenes similares en train/val/test splits
+- ❌ **Peor Accuracy**: Redujo el accuracy de 37% a 22% en pruebas
+- ✅ **Alternativa**: Se usa **Online Augmentation** en `dataset.py`
+
+**Online vs Offline Augmentation**:
+
+| Aspecto | Online (✅ Usado) | Offline (❌ No usar) |
+|---------|------------------|----------------------|
+| **Timing** | Durante entrenamiento | Antes del entrenamiento |
+| **Archivos** | No genera archivos | Genera _aug.jpg |
+| **Data Leakage** | No ocurre | Alto riesgo |
+| **Accuracy** | 43.75% | 22-28% (probado) |
+| **Implementación** | `dataset.py` transforms | `augment_dataset.py` |
+
+> 💡 **Consejo**: Si necesitas más datos, mejor buscar un dataset público de nubes (SWIM-CCSN, MGCD) 
+> en lugar de usar augmentación offline.
+
 ### Split de Datos
 
-- **Training (70%)**: Datos de entrenamiento con augmentation
-- **Validation (15%)**: Datos de validación sin augmentation
-- **Testing (15%)**: Evaluación final
+- **Training (70%)**: 77 imágenes con online augmentation
+- **Validation (15%)**: 16 imágenes sin augmentation
+- **Testing (15%)**: 18 imágenes para evaluación final
 
 ## 📁 Estructura del Proyecto
 
 ```
 CloudClassify13/
-├── config.py                  # Configuración centralizada
-├── model.py                   # Definición del modelo CNN
-├── dataset.py                 # Carga y procesamiento de datos
+├── config.py                  # Configuración centralizada (hiperparámetros optimizados)
+├── model.py                   # Definición del modelo CNN (53M parámetros)
+├── dataset.py                 # Carga y procesamiento de datos (con online augmentation)
 ├── train.py                   # Pipeline de entrenamiento
-├── predict.py                 # Sistema de inferencia
+├── predict.py                 # Sistema de inferencia (con detección de no-nubes)
 ├── app.py                     # Servidor Flask
-├── main_train.py              # Script principal
+├── main_train.py              # Script principal de entrenamiento
+├── augment_dataset.py         # ⚠️ NO USAR - Causa data leakage (ver advertencia)
+├── download_data.py           # Descarga de imágenes (URLs desactualizadas)
+├── plot_results.py            # Visualización de métricas
+├── requirements.txt           # Dependencias del proyecto
+├── web/                       # Interfaz web
+│   ├── index.html            # Página principal
+│   └── static/
+│       ├── script.js         # Lógica del cliente (diseño de 2 columnas)
+│       └── style.css         # Estilos (interfaz moderna)
+├── data/                      # Dataset organizado por clase
+│   ├── Ci/                   # Cirrus (~10 imágenes)
+│   ├── Cc/                   # Cirrocumulus
+│   ├── Cs/                   # Cirrostratus
+│   ├── Ac/                   # Altocumulus
+│   ├── As/                   # Altostratus
+│   ├── Cu/                   # Cumulus
+│   ├── Cb/                   # Cumulonimbus
+│   ├── Ns/                   # Nimbostratus
+│   ├── Sc/                   # Stratocumulus
+│   ├── St/                   # Stratus
+│   └── Ct/                   # Contrails
+├── models/                    # Modelos guardados
+│   └── cloud_classifier_best.pth  # Mejor modelo (43.75% accuracy)
+└── notebooks/                 # Notebooks de experimentación (opcional)
+```
 ├── requirements.txt           # Dependencias Python
 ├── README.md                  # Este archivo
 │
@@ -133,15 +214,15 @@ CloudClassify13/
 
 ### Requisitos del Sistema
 
-- Python 3.7 o superior
+- Python 3.8 o superior
 - pip (administrador de paquetes Python)
-- Opcional: GPU NVIDIA para aceleración CUDA
+- Opcional: GPU NVIDIA con CUDA para aceleración (requiere PyTorch con CUDA)
 
 ### Pasos de Instalación
 
 1. **Clonar/Descargar el proyecto:**
 ```bash
-cd tu/ruta/CloudClassify13
+cd CloudClassify13
 ```
 
 2. **Crear entorno virtual (recomendado):**
@@ -156,79 +237,115 @@ source venv/bin/activate
 ```
 
 3. **Instalar dependencias:**
+
+**IMPORTANTE**: Existen 2 versiones de PyTorch:
+
+#### Opción A: CPU (Ligero - ~200MB)
 ```bash
+# Instalación simple para CPU
 pip install -r requirements.txt
 ```
+✅ Rápido de instalar  
+❌ Entrenamiento lento (30-60 min/época)
 
-4. **Descargar o preparar imágenes de entrenamiento:**
+#### Opción B: GPU CUDA (Recomendado - ~2.8GB) ⚡
 ```bash
-# Las imágenes deben organizarse en estructura:
-# data/Ci/*.jpg
-# data/Cc/*.jpg
-# ... etc
+# PRIMERO: Instalar PyTorch con CUDA 11.8
+pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cu118
+
+# DESPUÉS: Instalar resto de dependencias
+pip install -r requirements.txt
 ```
+✅ 10-15x más rápido que CPU  
+❌ Requiere GPU NVIDIA  
+❌ Descarga grande (~2.8GB)
+
+> 📚 **Ver [INSTALACION_CUDA.md](INSTALACION_CUDA.md)** para guía detallada sobre:
+> - Instalación GPU vs CPU
+> - Migración entre versiones
+> - Tamaños de descarga
+> - Requisitos de hardware
+> - Troubleshooting
+
+4. **Verificar instalación:**
+```bash
+python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA disponible: {torch.cuda.is_available()}')"
+```
+
+**Output esperado (GPU)**:
+```
+PyTorch: 2.9.1
+CUDA disponible: True
+```
+
+**Output esperado (CPU)**:
+```
+PyTorch: 2.9.1
+CUDA disponible: False
+```
+
+5. **Dataset ya incluido:**
+El proyecto incluye ~111 imágenes (10 por clase) en `data/`. 
+**No es necesario descargar más datos para comenzar.**
 
 ## 📚 Uso
 
 ### 1. Entrenar el Modelo
 
-**Entrenamiento básico:**
+**Entrenamiento con configuración optimizada (recomendado):**
 ```bash
-python main_train.py --mode train
+python main_train.py --mode train --epochs 100 --device cuda
 ```
 
-**Con parámetros personalizados:**
+**Entrenamiento rápido para pruebas:**
 ```bash
-python main_train.py --mode train --epochs 100 --batch-size 16 --lr 0.0005
+python main_train.py --mode train --epochs 10 --device auto
 ```
 
 **Opciones disponibles:**
 ```bash
-python main_train.py --mode train --help
+python main_train.py --help
 ```
 
-**Parámetros:**
-- `--epochs`: Número de épocas (default: 50)
-- `--batch-size`: Tamaño de batch (default: 32)
-- `--lr`: Tasa de aprendizaje (default: 0.001)
-- `--device`: Dispositivo 'cuda', 'cpu' o 'auto' (default: auto)
-- `--verbose`: Salida detallada
+**Parámetros principales:**
+- `--mode`: `train`, `evaluate` o `predict`
+- `--epochs`: Número de épocas (default: 50, recomendado: 100)
+- `--device`: `cuda`, `cpu` o `auto` (default: auto)
+- `--verbose`: Muestra salida detallada
 
-**Ejemplo con GPU:**
-```bash
-python main_train.py --mode train --epochs 100 --device cuda --verbose
-```
+**Configuración actual (en `config.py`):**
+- Batch size: **16** (optimizado para dataset pequeño)
+- Learning rate: **0.0005** (convergencia suave)
+- Dropout: **0.6** (prevención de overfitting)
+- Early stopping patience: **30** (más tiempo para aprender)
 
-### 2. Evaluar Modelo
-
-```bash
-python main_train.py --mode evaluate --checkpoint models/best_model.pt
-```
-
-### 3. Realizar Predicciones
-
-**Predicción en imagen única:**
-```bash
-python main_train.py --mode predict --image ruta/a/imagen.jpg
-```
-
-**Con checkpoint específico:**
-```bash
-python main_train.py --mode predict --image imagen.jpg --checkpoint models/best_model.pt
-```
-
-### 4. Usar Interfaz Web
+### 2. Usar Interfaz Web
 
 **Iniciar servidor Flask:**
 ```bash
 python app.py
 ```
 
-Luego abrir en navegador: `http://localhost:5000`
+Luego abrir en navegador: **`http://localhost:5000`**
 
-**Características:**
-- Subir imagen via drag-and-drop
-- Ver predicción en tiempo real
+**Características de la interfaz:**
+- 📤 **Subida drag-and-drop** de imágenes
+- 🖼️ **Diseño de 2 columnas**: Imagen izquierda, resultados derecha
+- 📊 **Visualización detallada**: Tipo de nube, confianza, descripción, top-3
+- ⚠️ **Detección de no-nubes**: Alerta cuando confianza < 25%
+- 🎨 **Interfaz moderna**: Animaciones y diseño responsive
+
+### 3. Realizar Predicciones por CLI
+
+**Predicción única:**
+```bash
+python predict.py --image ruta/imagen.jpg
+```
+
+**Predicción con modelo específico:**
+```bash
+python predict.py --image imagen.jpg --checkpoint models/cloud_classifier_best.pth
+```
 - Ver top-3 predicciones
 - Ver descripción de tipo de nube
 - Información sobre todas las clases
@@ -268,50 +385,62 @@ Se guarda en `models/training_history.json`:
 ## 🔧 Módulos del Proyecto
 
 ### config.py
-Configuración centralizada del proyecto:
+Configuración centralizada optimizada:
 - Rutas de directorios
-- Clases de nubes
-- Hiperparámetros del modelo
-- Parámetros de entrenamiento
-- Configuración de augmentation
+- Clases de nubes (11 tipos WMO)
+- **Hiperparámetros optimizados**: batch=16, lr=0.0005, dropout=0.6
+- Early stopping patience=30
+- NO_CLOUD_THRESHOLD=0.25
 
 ### model.py
-Define la arquitectura CNN:
+Arquitectura CNN (53M parámetros):
 - Clase `CloudCNN` con 4 bloques convolucionales
-- Batch Normalization
-- Dropout para regularización
-- Inicialización He
+- BatchNorm después de cada convolución
+- Dropout 0.6 en capas fully connected
+- Inicialización He para ReLU
 
 ### dataset.py
-Pipeline de datos:
+Pipeline de datos con **Online Augmentation**:
 - Clase `CloudDataset` para cargar imágenes
-- Transformaciones y augmentation
-- DataLoaders para train/val/test
-- Split estratificado
+- **Transformaciones en tiempo real**:
+  - RandomHorizontalFlip(p=0.5)
+  - RandomRotation(15°)
+  - ColorJitter(brightness=0.15, contrast=0.15)
+- DataLoaders con batch_size=16
+- Split estratificado 70/15/15
 
 ### train.py
-Sistema de entrenamiento:
+Sistema de entrenamiento robusto:
 - Clase `CloudClassifierTrainer`
-- Loop de entrenamiento y validación
-- Early stopping
-- Guardado de checkpoints
-- Optimizadores configurables (Adam, SGD, RMSprop)
-- Schedulers de learning rate
+- Loop de entrenamiento/validación
+- **Early stopping** con patience=30
+- Guardado automático del mejor modelo
+- Optimizador Adam con lr=0.0005
+- Tracking de métricas (loss, accuracy)
 
 ### predict.py
-Sistema de inferencia:
+Sistema de inferencia inteligente:
 - Clase `CloudPredictor`
-- Predicción de imágenes individuales
-- Predicción por lotes
-- Top-K predicciones
-- Generación de probabilidades
+- **Detección de no-nubes** (threshold=0.25)
+- Predicción de imágenes individuales o lotes
+- Top-K predicciones con probabilidades
+- Campo `is_likely_cloud` en respuesta
+- Warnings para baja confianza
 
 ### app.py
 Servidor web Flask:
-- Ruta `/` para interfaz HTML
-- Ruta `/api/predict` POST para clasificación
-- Ruta `/api/classes` GET para listar clases
-- Ruta `/api/info` GET para metadata
+- Ruta `/` - Interfaz HTML moderna
+- Ruta `/api/predict` POST - Clasificación de imagen
+- Ruta `/api/classes` GET - Lista de clases
+- Ruta `/api/info` GET - Metadata del modelo
+- Manejo de errores robusto
+
+### augment_dataset.py ⚠️
+**NO USAR - Mantener solo como referencia**:
+- Genera augmentación offline (permanente)
+- **Problema**: Causa data leakage entre splits
+- **Resultado**: Reduce accuracy de 43.75% a 22-28%
+- **Alternativa**: Usar online augmentation en `dataset.py`
 - Validación de archivos
 - Manejo de errores
 

@@ -2,15 +2,41 @@
 
 ## ⚡ Inicio Rápido (5 minutos)
 
+### Estado Actual del Proyecto
+- ✅ **Modelo funcional**: `cloud_classifier_best.pth`
+- 📊 **Accuracy**: **43.75%** en validación
+- 📦 **Dataset**: 111 imágenes incluidas (11 clases)
+- ⚙️ **Configuración optimizada**: Lista para usar
+
 ### 1. Instalación Básica
 ```bash
-# Crear entorno virtual
+# Crear y activar entorno virtual
 python -m venv venv
 venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+```
 
-# Instalar dependencias
+**IMPORTANTE - Elegir versión de PyTorch**:
+
+#### Opción A: CPU (Ligero - ~200MB) 💻
+```bash
+# Instalación simple - funciona en cualquier PC
 pip install -r requirements.txt
 ```
+
+#### Opción B: GPU CUDA 11.8 (Recomendado - ~2.8GB) ⚡
+```bash
+# PRIMERO: PyTorch con CUDA (~2.8GB - puede tardar 10-30 min)
+pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cu118
+
+# DESPUÉS: Resto de dependencias
+pip install -r requirements.txt
+```
+> 💡 **¿No sabes cuál elegir?**  
+> - Si tienes GPU NVIDIA → Opción B (vale la pena la descarga)
+> - Si no tienes GPU o solo vas a probar → Opción A
+> 
+> 📚 **Más info**: Ver [INSTALACION_CUDA.md](INSTALACION_CUDA.md)
 
 ### 2. Agregar Datos (OPCIONAL) NO EJECUTES ESTE PASO TODAVIA, LAS URLS NO SIRVEN.
 ```bash
@@ -25,132 +51,181 @@ python download_data.py --max-per-class 5
 > **⚠️ NOTA:** El proyecto ya incluye 10 imágenes por clase en la carpeta `data/`.
 > Este paso es opcional si deseas agregar más imágenes de entrenamiento.
 
-### 3. Entrenar Modelo
+### 4. Entrenar Modelo
 
-#### Entrenamiento Básico (modo por defecto)
+#### ⭐ Opción A: Entrenamiento Rápido (Recomendado para empezar)
 ```bash
-# Entrena con configuración por defecto (50 épocas)
-python main_train.py
+# Entrenamiento de prueba rápido (10 épocas)
+python main_train.py --mode train --epochs 10 --device auto --verbose
 ```
 
-#### Entrenamiento Rápido (para pruebas) **USA ESTE ES MAS RAPIDO**
+#### 🚀 Opción B: Entrenamiento Completo (Recomendado para mejor accuracy)
 ```bash
-# Solo 5 épocas para prueba rápida
-python main_train.py --mode train --epochs 5 --verbose
-```
+# Entrenamiento completo con GPU (100 épocas)
+python main_train.py 
 
-#### Entrenamiento Completo (recomendado)
-```bash
-# Entrenamiento completo con GPU y salida detallada
-python main_train.py --mode train --epochs 50 --device auto --verbose
-```
 
-#### Parámetros Disponibles:
-- `--mode`: Modo de operación
-  - `train` (entrenar modelo)
-  - `evaluate` (evaluar modelo existente)
-  - `predict` (predecir una imagen)
-- `--epochs`: Número de épocas de entrenamiento (default: 50)
-- `--batch-size`: Tamaño del batch (default: 32)
-- `--lr`: Tasa de aprendizaje (default: 0.001)
-- `--device`: Dispositivo de cómputo
-  - `auto` (GPU si disponible, sino CPU)
-  - `cuda` (forzar GPU)
-  - `cpu` (forzar CPU)
-- `--verbose`: Mostrar información detallada del entrenamiento
-- `--checkpoint`: Ruta a checkpoint existente (para evaluar/predecir)
 
-### 4. Usar Interfaz Web
+### 5. Usar Interfaz Web
 ```bash
 python app.py
 ```
-Abrir: http://localhost:5000
+Abrir en navegador: **http://localhost:5000**
+
+**Características**:
+- 🖼️ Diseño de 2 columnas (imagen izq, resultados der)
+- 📤 Drag & drop para subir imágenes
+- 📊 Visualización con confianza y top-3 predicciones
+- ⚠️ Alertas para imágenes sin nubes (confianza < 25%)
 
 ---
 
 ## 📊 Ejemplos de Uso Completos
 
-### Entrenar con GPU y 100 épocas
+### Caso 1: Entrenamiento Completo con GPU
 ```bash
-python main_train.py --mode train --epochs 100 --batch-size 32 --lr 0.001 --device cuda --verbose
+# Mejor configuración para training completo
+python main_train.py --mode train --epochs 100 --device cuda --verbose
+```
+### Caso 2: Entrenamiento Rápido (CPU)
+```bash
+# Para probar sin GPU (más lento)
+python main_train.py --mode train --epochs 10 --device cpu --verbose
 ```
 
-### Entrenar con CPU (más lento)
+### Caso 4: Predicción CLI Individual
 ```bash
-python main_train.py --mode train --epochs 50 --device cpu --verbose
+# Predecir una imagen específica
+python predict.py --image ruta/mi_nube.jpg
 ```
 
-### Evaluar modelo guardado
-```bash
-python main_train.py --mode evaluate --checkpoint models/cloud_classifier_best.pth
-```
-
-### Predecir una imagen
-```bash
-python main_train.py --mode predict --image ruta/mi_nube.jpg
-```
-
-### Predecir con checkpoint específico
-```bash
-python main_train.py --mode predict --image ruta/mi_nube.jpg --checkpoint models/cloud_classifier_best.pth
-```
-
----
-
-## 🔮 Predicciones
-
-### Imagen Individual
-```bash
-python main_train.py --mode predict --image ruta/imagen.jpg
-```
-
-### Interfaz Web
-```bash
-python app.py
-# Luego: Drag-and-drop imagen en http://localhost:5000
+**Output esperado**:
+```json
+{
+  "predicted_class": "Cu",
+  "confidence": 0.567,
+  "is_likely_cloud": true,
+  "top_predictions": [
+    {"class": "Cu", "probability": 0.567},
+    {"class": "Sc", "probability": 0.234},
+    {"class": "Ac", "probability": 0.123}
+  ]
+}
 ```
 
 ---
 
-## 🗂️ Agregar más Imágenes
+## ⚠️ ADVERTENCIAS IMPORTANTES
 
-Estructura esperada:
+### 🚫 NO Usar `augment_dataset.py`
+
+El proyecto incluye `augment_dataset.py` pero **NO debe usarse**:
+
+**Razones**:
+- ❌ Genera augmentación **offline** (permanente en disco)
+- ❌ Causa **data leakage** entre train/val/test
+- ❌ **Reduce accuracy**: De 43.75% baja a 22-28%
+- ❌ Crea imágenes muy similares en diferentes splits
+
+**Problema Técnico**:
+```
+Original: Cu_001.jpg → Split: Train
+Augmented: Cu_001_aug1.jpg → Split: Val  ← LEAKAGE!
+           Cu_001_aug2.jpg → Split: Test ← LEAKAGE!
+```
+
+El modelo "memoriza" las variaciones y falla en generalizar.
+
+**✅ Alternativa Correcta**:
+- Usar **online augmentation** (ya implementado en `dataset.py`)
+- Las transformaciones se aplican en tiempo real durante training
+- Cada época ve versiones diferentes de las imágenes
+- No hay riesgo de data leakage
+
+
+---
+
+## 🗂️ Agregar Más Imágenes (Opcional)
+
+Si quieres **mejorar el accuracy**, necesitas más datos reales:
+
+### Estructura de Carpetas
 ```
 CloudClassify13/
 └── data/
-    ├── Ci/      (Cirrus)
-    ├── Cc/      (Cirrocumulus)
-    ├── Cs/      (Cirrostratus)
-    ├── Ac/      (Altocumulus)
-    ├── As/      (Altostratus)
-    ├── Cu/      (Cumulus)
-    ├── Cb/      (Cumulonimbus)
-    ├── Ns/      (Nimbostratus)
-    ├── Sc/      (Stratocumulus)
-    ├── St/      (Stratus)
-    └── Ct/      (Contrails)
+    ├── Ci/      # Cirrus (~10 imágenes incluidas)
+    ├── Cc/      # Cirrocumulus
+    ├── Cs/      # Cirrostratus
+    ├── Ac/      # Altocumulus
+    ├── As/      # Altostratus
+    ├── Cu/      # Cumulus
+    ├── Cb/      # Cumulonimbus
+    ├── Ns/      # Nimbostratus
+    ├── Sc/      # Stratocumulus
+    ├── St/      # Stratus
+    └── Ct/      # Contrails
 ```
 
-Copiar imágenes JPG/PNG en las carpetas correspondientes.
+### Cómo Agregar Imágenes
+1. **Manual** (Recomendado):
+   - Descargar imágenes de Google Images, Flickr, etc.
+   - Renombrar: `Cu_012.jpg`, `Ci_045.png`
+   - Copiar a carpeta correspondiente
+
+2. **Datasets Públicos**:
+   - SWIM-CCSN Dataset
+   - MGCD (Multimodal Ground-based Cloud Dataset)
+   - CloudSeg Dataset
+
+**Objetivo**: 50-100+ imágenes por clase para accuracy > 70%
 
 ---
 
-## 💡 Tips
+## 💡 Tips y Mejores Prácticas
 
-### Rendimiento
-- **GPU recomendada**: NVIDIA GPU con CUDA 11.8+
-- **Requisito mínimo**: 4GB RAM, 1GB almacenamiento
-- **Imágenes ideales**: 224×224px, JPG, PNG
+### 🎯 Rendimiento
+- **GPU recomendada**: NVIDIA con CUDA 11.8+ (10x más rápido)
+- **CPU aceptable**: Funciona pero más lento (30-60 min por época)
+- **Requisitos mínimos**: 4GB RAM, 2GB disco libre
+- **Imágenes**: JPG/PNG, 224×224px (se redimensionan automáticamente)
 
-### Datos
-- Mínimo 10 imágenes por clase para entrenar
-- Máximo: 100+ imágenes por clase para mejor accuracy
-- Distribución balanceada mejora resultados
+### 📊 Dataset
+- **Actual**: 111 imágenes → **43.75% accuracy** (limitado)
+- **Recomendado**: 500-1000 imágenes → 70-85% accuracy esperado
+- **Óptimo**: 5000+ imágenes → 90%+ accuracy posible
+- **Balance**: Misma cantidad de imágenes por clase
 
-### Entrenamiento
-- Early stopping detiene entrenamiento si no mejora
-- Augmentation automática previene overfitting
-- Checkpoints guardados cada época (el mejor se guarda automáticamente)
+### 🚀 Entrenamiento
+- **Early stopping** se activa automáticamente (patience=30)
+- **Online augmentation** funciona en tiempo real
+- **Mejor modelo** se guarda automáticamente
+- **Checkpoints**: Guardan progreso cada época
+
+### 🐛 Troubleshooting Común
+
+**Problema**: `RuntimeError: CUDA out of memory`
+```bash
+# Solución: Reducir batch size en config.py
+BATCH_SIZE = 8  # o 4 para GPUs pequeñas
+```
+
+**Problema**: Entrenamiento muy lento en CPU
+```bash
+# Solución: Reducir épocas o usar GPU
+python main_train.py --mode train --epochs 10 --device cpu
+```
+
+**Problema**: Accuracy no mejora de ~43%
+```bash
+# Causa: Dataset muy pequeño (111 imágenes)
+# Solución: Agregar más imágenes reales (500+ por clase)
+```
+
+**Problema**: Error "No module named 'torch'"
+```bash
+# Solución: Reinstalar PyTorch
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+```
 
 ---
 
