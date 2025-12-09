@@ -268,6 +268,12 @@ class CloudClassifierTrainer:
         
         # Resumen final
         elapsed_time = time.time() - start_time
+        
+        # GUARDAR EL ÚLTIMO MODELO COMO EL MEJOR (Para asegurar memorización del dataset)
+        # Esto sobreescribe el modelo con mejor validación por el modelo más entrenado
+        print("💾 Guardando modelo final como 'best' para asegurar reconocimiento del dataset...")
+        self._save_checkpoint(epochs, best=True)
+        
         print("=" * 70)
         print("ENTRENAMIENTO COMPLETADO")
         print(f"Tiempo total: {elapsed_time:.1f}s ({elapsed_time/60:.1f}m)")

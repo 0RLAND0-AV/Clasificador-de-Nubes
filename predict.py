@@ -15,7 +15,7 @@ from PIL import Image
 
 from config import (
     CLASS_NAMES, CLOUD_CLASSES, MODEL_PATH, IMAGE_SIZE,
-    NORMALIZE_MEAN, NORMALIZE_STD, MIN_CONFIDENCE, TOP_K, NO_CLOUD_THRESHOLD
+    NORMALIZE_MEAN, NORMALIZE_STD, MIN_CONFIDENCE, TOP_K
 )
 from dataset import get_single_image_loader
 from model import create_model
@@ -82,17 +82,19 @@ class CloudPredictor:
         predicted_class = CLASS_NAMES[predicted_idx.item()]
         confidence_score = confidence.item()
         
-        # Detectar si probablemente no es una nube
-        is_likely_cloud = confidence_score >= NO_CLOUD_THRESHOLD
+        # Manejo de incertidumbre (si la confianza es muy baja)
+        if confidence_score < MIN_CONFIDENCE:
+            predicted_class = "Unknown"
+            predicted_class_name = "Desconocido / No es una nube"
+        else:
+            predicted_class_name = CLOUD_CLASSES.get(predicted_class, predicted_class)
         
         result = {
             'image_path': str(image_path),
             'predicted_class': predicted_class,
-            'predicted_class_name': CLOUD_CLASSES.get(predicted_class, predicted_class),
+            'predicted_class_name': predicted_class_name,
             'confidence': confidence_score,
-            'confidence_percent': f"{confidence_score * 100:.2f}%",
-            'is_likely_cloud': is_likely_cloud,
-            'warning': None if is_likely_cloud else 'La imagen podría no contener nubes o la calidad es insuficiente'
+            'confidence_percent': f"{confidence_score * 100:.2f}%"
         }
         
         if return_probabilities:
