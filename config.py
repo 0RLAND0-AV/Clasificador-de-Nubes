@@ -84,7 +84,7 @@ OPTIMIZER = 'adam'  # Alias para compatibilidad
 LOSS_FUNCTION = 'crossentropy'
 
 # Early stopping
-EARLY_STOPPING_PATIENCE = 10
+EARLY_STOPPING_PATIENCE = 25
 EARLY_STOPPING_MIN_DELTA = 0.001
 
 # Learning rate scheduler
@@ -131,10 +131,13 @@ CHECKPOINT_FREQUENCY = 5
 
 # ==================== PARÁMETROS DE PREDICCIÓN ====================
 # Confianza mínima para mostrar resultado
-MIN_CONFIDENCE = 0.3
+MIN_CONFIDENCE = 0.4  # Umbral más alto para mejor precisión
 
 # Top-K predicciones a mostrar
 TOP_K = 3
+
+# Umbral para detectar "no es nube"
+NO_CLOUD_THRESHOLD = 0.25  # Si la mejor predicción < 25%, probablemente no es nube
 
 # ==================== PARÁMETROS DE LA WEB ====================
 # Puerto del servidor web

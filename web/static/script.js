@@ -201,6 +201,8 @@ function displayResults(data) {
     const prediction = data.predicted_class;
     const confidence = data.confidence;
     const top_k = data.top_predictions || [];
+    const warning = data.warning;  // Advertencia si no es nube
+    const isLikelyCloud = data.is_likely_cloud !== false;  // Por defecto true
 
     // Main prediction
     const cloudInfo = CLOUD_DESCRIPTIONS[prediction] || { name: prediction, description: 'Descripción no disponible.' };
@@ -210,6 +212,19 @@ function displayResults(data) {
         ${selectedImageDataURL ? `
         <div style="text-align: center; margin-bottom: 20px;">
             <img src="${selectedImageDataURL}" alt="Imagen analizada" style="max-width: 100%; max-height: 400px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        </div>
+        ` : ''}
+        
+        <!-- Advertencia si no es nube -->
+        ${!isLikelyCloud ? `
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 1.5em;"></i>
+                <div>
+                    <strong style="color: #92400e;">Advertencia:</strong>
+                    <p style="margin: 5px 0 0 0; color: #78350f;">${warning || 'La confianza es baja. Asegúrate de que la imagen contenga nubes visibles.'}</p>
+                </div>
+            </div>
         </div>
         ` : ''}
 
