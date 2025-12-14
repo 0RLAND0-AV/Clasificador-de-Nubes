@@ -190,6 +190,158 @@ FC_LAYERS = [512, 256, 128]
 DROPOUT_RATE = 0.0  # Sin dropout = modo memorización
 
 # ==============================================================================
+# HIPERPARÁMETROS DE ENTRENAMIENTO - Los más importantes
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# BATCH_SIZE (Tamaño del lote)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Número de imágenes procesadas JUNTAS antes de actualizar pesos.
+#   La GPU procesa BATCH_SIZE imágenes en paralelo.
+#
+# ¿Qué pasa si lo AUMENTO? (ej: 8 → 32)
+#   ✅ Más rápido: Aprovecha mejor el paralelismo de la GPU
+#   ✅ Gradientes más estables
+#   ❌ Más memoria GPU: Puede dar "CUDA out of memory"
+#   ❌ Generalización peor en algunos casos
+#
+# ¿Qué pasa si lo DISMINUYO? (ej: 32 → 4)
+#   ✅ Menos memoria GPU
+#   ✅ Puede generalizar mejor (más ruido = explora más)
+#   ❌ Más lento
+#   ❌ Gradientes más ruidosos
+#
+# Valores según GPU:
+#   GPU 4GB: batch 4-8
+#   GPU 8GB: batch 16-32
+#   GPU 16GB+: batch 32-64
+# ------------------------------------------------------------------------------
+BATCH_SIZE = 8
+
+# ------------------------------------------------------------------------------
+# LEARNING_RATE (Tasa de aprendizaje) ⭐ EL MÁS IMPORTANTE ⭐
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Qué tanto se ajustan los pesos en cada paso.
+#   Controla la "velocidad" de aprendizaje. ES EL HIPERPARÁMETRO MÁS CRÍTICO.
+#
+# ¿Qué pasa si lo AUMENTO? (ej: 0.001 → 0.01)
+#   ✅ Aprende más rápido
+#   ❌ Inestabilidad: Loss sube y baja caóticamente
+#   ❌ Puede "explotar" (loss = inf o NaN)
+#   ❌ Salta sobre el punto óptimo
+#
+# ¿Qué pasa si lo DISMINUYO? (ej: 0.001 → 0.0001)
+#   ✅ Más estable, convergencia suave
+#   ✅ Encuentra mejores mínimos
+#   ❌ MUY lento, necesita muchas épocas
+#   ❌ Puede quedarse atascado
+#
+# Valores típicos:
+#   Adam: 0.0001 a 0.001
+#   SGD: 0.01 a 0.1
+# ------------------------------------------------------------------------------
+LEARNING_RATE = 0.001
+
+# ------------------------------------------------------------------------------
+# WEIGHT_DECAY (Regularización L2)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Penaliza pesos grandes para prevenir overfitting.
+#   loss_total = loss + weight_decay * sum(pesos²)
+#
+# ¿Qué pasa si lo AUMENTO? (ej: 0 → 0.01)
+#   ✅ Menos overfitting
+#   ❌ Puede causar underfitting si es muy alto
+#
+# ¿Qué pasa si lo DISMINUYO? (ej: 0.001 → 0)
+#   ✅ Pesos pueden crecer libremente
+#   ❌ Más riesgo de overfitting
+#
+# Para memorización: 0.0 (sin restricción)
+# Para generalización: 0.0001 a 0.01
+# ------------------------------------------------------------------------------
+WEIGHT_DECAY = 0.0
+
+# ------------------------------------------------------------------------------
+# EPOCHS (Número de épocas)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Cuántas veces el modelo ve TODO el dataset completo.
+#   1 época = 1 pasada por todas las imágenes.
+#
+# ¿Qué pasa si lo AUMENTO? (ej: 50 → 200)
+#   ✅ Más oportunidad de aprender/memorizar
+#   ❌ Más tiempo de entrenamiento
+#   ❌ Overfitting si no hay early stopping
+#
+# ¿Qué pasa si lo DISMINUYO? (ej: 100 → 20)
+#   ✅ Entrenamiento rápido
+#   ❌ El modelo no alcanza a converger
+#   ❌ Accuracy baja
+#
+# Valores típicos: 50 a 300
+# ------------------------------------------------------------------------------
+EPOCHS = 200
+
+# ------------------------------------------------------------------------------
+# OPTIMIZER_TYPE (Algoritmo de optimización)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Algoritmo que actualiza los pesos del modelo.
+#
+#   'adam': Adapta LR por parámetro. Rápido y popular. Recomendado para empezar.
+#   'sgd': Gradiente descendente clásico. Más lento pero mejor generalización.
+#   'rmsprop': Similar a Adam. Bueno para RNNs.
+# ------------------------------------------------------------------------------
+OPTIMIZER_TYPE = 'adam'
+OPTIMIZER = 'adam'
+
+# ------------------------------------------------------------------------------
+# LOSS_FUNCTION (Función de pérdida)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Mide el error entre predicción y etiqueta real.
+#   El modelo MINIMIZA esta función.
+#
+#   'crossentropy': Estándar para clasificación. Funciona para la mayoría.
+#   'focal_loss': Da más peso a ejemplos difíciles (clases desbalanceadas).
+# ------------------------------------------------------------------------------
+LOSS_FUNCTION = 'crossentropy'
+
+# ------------------------------------------------------------------------------
+# EARLY_STOPPING (Detención temprana)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Si val_loss no mejora en PATIENCE épocas, PARA el entrenamiento.
+#   Previene overfitting y ahorra tiempo.
+#
+# PATIENCE alto (100+): Entrena hasta el final (modo memorización)
+# PATIENCE bajo (10-20): Para cuando deja de mejorar
+# ------------------------------------------------------------------------------
+EARLY_STOPPING_PATIENCE = 100
+EARLY_STOPPING_MIN_DELTA = 0.001
+
+# ------------------------------------------------------------------------------
+# LR_SCHEDULER (Reducción del Learning Rate)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Reduce el LR durante el entrenamiento.
+#   Empieza alto (aprende rápido) → termina bajo (afina detalles)
+#
+#   'cosine': Curva coseno suave (recomendado)
+#   'step': Reduce a la mitad cada N épocas
+#   'exponential': Reduce multiplicando por factor
+#
+# T_MAX: Épocas para un ciclo completo del coseno
+# ------------------------------------------------------------------------------
+USE_LR_SCHEDULER = True
+LR_SCHEDULER_TYPE = 'cosine'
+SCHEDULER = 'cosine'
+LR_SCHEDULER_T_MAX = 30
+
+# ==============================================================================
 # DATA AUGMENTATION (Aumento de Datos) - Técnicas para enriquecer el dataset
 # ==============================================================================
 # ¿Qué es Data Augmentation?
@@ -362,4 +514,4 @@ PROJECT_AUTHOR = "Grupo #13 - Inteligencia Artificial"
 print(f"[OK] Configuracion cargada: {PROJECT_NAME} v{PROJECT_VERSION}")
 print(f"[OK] Clases a clasificar: {NUM_CLASSES}")
 print(f"[OK] Tamano de imagen: {IMAGE_SIZE}x{IMAGE_SIZE}")
-print(f"[OK] Dispositivo: {'CUDA (GPU)' if USE_CUDA else 'CPU'}")
+print(f"[OK] GPU disponible: {'Si (CUDA)' if USE_CUDA else 'No'}")
