@@ -6,47 +6,51 @@
 const CLOUD_DESCRIPTIONS = {
     'Ci': {
         name: 'Cirrus',
-        description: 'Nubes altas, finas, cristalinas. Tienen forma filamentosa y se encuentran a más de 6000m de altura. Compuestas por cristales de hielo.'
+        description: 'Delgadas y transparentes; blancas y brillantes; las nubes son filamentosas y parecidas a colas de caballo.'
     },
     'Cc': {
         name: 'Cirrocumulus',
-        description: 'Nubes altas en forma de copos o grupos. Indican cambios de clima en las próximas 24 horas.'
+        description: 'Nubes muy pequeñas, blancas y brillantes; son escamas blancas delgadas; a menudo dispuestas en filas y en grupos.'
     },
     'Cs': {
         name: 'Cirrostratus',
-        description: 'Capas delgadas y translúcidas a gran altitud. Producen halos alrededor del sol o la luna.'
+        description: 'La parte inferior de la nube tiene una estructura filamentosa; el cuerpo de la nube es lo suficientemente delgado para dejar pasar el sol y la luna; y hay un halo distinto bajo la iluminación del sol.'
     },
     'Ac': {
         name: 'Altocumulus',
-        description: 'Nubes medianas en racimos. Indican clima inestable y posibles tormentas.'
+        description: 'Nubes pequeñas y distintas en contorno; las nubes delgadas son blancas, contorno Sol-Luna visible, las nubes gruesas son gris oscuro, el contorno del Sol-Luna no es claro; nubes ovaladas, en forma de teja, escamas de pescado o distribución ondulada de agua.'
     },
     'As': {
         name: 'Altostratus',
-        description: 'Capas grises o azuladas uniformes. El sol se ve como a través de vidrio esmerilado.'
+        description: 'Nubes más gruesas y que cubren el cielo; el sol pasa a través casi sin halo; a menudo tienen estructuras rayadas y son gris-blanquecinas o gris-azuladas.'
     },
     'Cu': {
         name: 'Cumulus',
-        description: 'Nubes densas con base plana y cúspides redondeadas. Indican buen tiempo.'
+        description: 'Proyección hacia arriba de un arco circular; nubes de tamaño similar a puños; márgenes claros.'
     },
     'Cb': {
         name: 'Cumulonimbus',
-        description: 'Nubes de tormenta con desarrollo vertical. Producen lluvia, granizo y tormentas.'
+        description: 'Nubes gruesas y con forma de brócoli; los bordes son borrosos.'
     },
     'Ns': {
         name: 'Nimbostratus',
-        description: 'Nubes bajas, oscuras y uniformes. Producen lluvia o nieve continua.'
+        description: 'Nubes bajas y amorfas; a menudo cubren el cielo y oscurecen completamente el sol y la luna; nubes esponjosas y gris oscuro.'
     },
     'Sc': {
         name: 'Stratocumulus',
-        description: 'Nubes bajas en capas o grupos. Ocupan gran parte del cielo.'
+        description: 'Nubes generalmente del tamaño de un puño y distribuidas libremente, agrupadas, viajeras y onduladas, a menudo grises o gris-blanquecinas.'
     },
     'St': {
         name: 'Stratus',
-        description: 'Capas bajas, grises y uniformes. Pueden producir llovizna.'
+        description: 'Nubes que yacen uniformemente; cubren una gran área, casi todo el cielo; mayormente grises.'
     },
     'Ct': {
         name: 'Contrails',
-        description: 'Estelas de condensación de aviones. Formadas a gran altitud.'
+        description: 'Estelas de condensación; nubes en forma de línea producidas por el escape de los motores de los aviones.'
+    },
+    'No': {
+        name: 'No Cloud',
+        description: 'No hay nubes en el cielo.'
     }
 };
 
@@ -375,14 +379,32 @@ function displayCloudTypes(classes) {
     classes.forEach(cloudClass => {
         const info = CLOUD_DESCRIPTIONS[cloudClass.code] || { name: cloudClass.name };
         html += `
-            <div class="cloud-type-badge" style="background: #f0f9ff; padding: 10px; margin: 5px; border-radius: 8px; text-align: center; border: 2px solid #bae6fd;">
-                <div class="cloud-type-code" style="font-weight: bold; font-size: 1.2em; color: #0284c7;">${cloudClass.code}</div>
-                <div class="cloud-type-name" style="font-size: 0.9em; color: #666;">${info.name || cloudClass.name}</div>
+            <div class="cloud-type-badge" id="badge-${cloudClass.code}" onclick="toggleCloudDescription('${cloudClass.code}')">
+                <div class="badge-header">
+                    <div class="header-content">
+                        <div class="cloud-type-code">${cloudClass.code}</div>
+                        <div class="cloud-type-name">${info.name || cloudClass.name}</div>
+                    </div>
+                    <div class="toggle-icon">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="cloud-type-description">
+                    <p>${info.description || 'Sin descripción disponible.'}</p>
+                </div>
             </div>
         `;
     });
 
     cloudTypesGrid.innerHTML = html;
+}
+
+function toggleCloudDescription(code) {
+    // Toggle current only
+    const badge = document.getElementById(`badge-${code}`);
+    if (badge) {
+        badge.classList.toggle('active');
+    }
 }
 
 // Load Project Info
