@@ -1,22 +1,10 @@
 # CloudClassify13 - Clasificador de Nubes con CNN
 
 **Proyecto de Grupo #13**  
-Universidad: [Tu Universidad]  
-Curso: Inteligencia Artificial / Machine Learning  
-Año: 2025
+Universidad: San Simon 
+Curso: Inteligencia Artificial
+Periodo: 2/2025
 
-## 📊 Estado Actual del Modelo
-
-**Última Actualización**: Diciembre 2025
-
-- ✅ **Modelo Funcional**: `cloud_classifier_best.pth`
-- 📈 **Accuracy**: **43.75%** en validación
-- 🎯 **Dataset**: 111 imágenes (11 clases × ~10 imágenes/clase)
-- 🔧 **Configuración Optimizada**: Batch=16, LR=0.0005, Dropout=0.6
-- ⚡ **GPU Support**: CUDA compatible (opcional)
-
-> ⚠️ **Nota**: El accuracy actual (43.75%) es el mejor resultado con el dataset pequeño disponible. 
-> Para mejorar significativamente se necesitaría un dataset más grande (500-1000 imágenes por clase).
 
 ## 📋 Descripción
 
@@ -32,7 +20,7 @@ CloudClassify13 es un sistema de clasificación automática de tipos de nubes ba
 - ✅ **Online Data Augmentation**: Aumentación en tiempo real durante entrenamiento
 - ✅ **Early Stopping**: Prevención de overfitting (patience=30)
 - ✅ **GPU/CPU**: Soporte automático para aceleración GPU (CUDA)
-- ✅ **Detección de No-Nubes**: Sistema de threshold para detectar imágenes sin nubes
+- ✅ **Detección de No-Nubes**: Sistema de threshold para detectar imágenes sin nubes, cielo sin nubes.
 
 ## 🏗️ Arquitectura
 
@@ -67,31 +55,6 @@ CloudCNN Architecture:
 └── Output: Linear(128, 11) → Logits
 ```
 
-**Parámetros:**
-- Total: **53,099,275 parámetros**
-- Entrada: **224×224 RGB**
-- Salida: **11 clases**
-- Dropout: **0.6** (optimizado para dataset pequeño)
-
-### Configuración de Entrenamiento Optimizada
-
-**Hiperparámetros actuales** (optimizados para 111 imágenes):
-
-```python
-BATCH_SIZE = 16              # Reducido de 32 para dataset pequeño
-LEARNING_RATE = 0.0005       # Reducido de 0.001 para convergencia más suave
-DROPOUT_RATE = 0.6           # Aumentado de 0.5 para prevenir overfitting
-EARLY_STOPPING_PATIENCE = 30 # Aumentado de 10 para dar más tiempo al modelo
-NO_CLOUD_THRESHOLD = 0.25    # Threshold para detectar imágenes sin nubes
-```
-
-**Mejoras implementadas**:
-- ✅ Batch size reducido para datasets pequeños
-- ✅ Learning rate más bajo para mejor convergencia
-- ✅ Dropout más alto contra overfitting
-- ✅ Early stopping con paciencia extendida
-- ✅ Sistema de detección de no-nubes
-
 ### Pipeline de Datos
 
 ```
@@ -115,27 +78,6 @@ DataLoader (Batch size: 16)
 Modelo CNN
 ```
 
-**⚠️ IMPORTANTE - Data Augmentation**:
-
-El proyecto incluye `augment_dataset.py` pero **NO SE RECOMIENDA SU USO**:
-
-- ❌ **Offline Augmentation**: Genera imágenes aumentadas permanentemente
-- ❌ **Data Leakage**: Crea imágenes similares en train/val/test splits
-- ❌ **Peor Accuracy**: Redujo el accuracy de 37% a 22% en pruebas
-- ✅ **Alternativa**: Se usa **Online Augmentation** en `dataset.py`
-
-**Online vs Offline Augmentation**:
-
-| Aspecto | Online (✅ Usado) | Offline (❌ No usar) |
-|---------|------------------|----------------------|
-| **Timing** | Durante entrenamiento | Antes del entrenamiento |
-| **Archivos** | No genera archivos | Genera _aug.jpg |
-| **Data Leakage** | No ocurre | Alto riesgo |
-| **Accuracy** | 43.75% | 22-28% (probado) |
-| **Implementación** | `dataset.py` transforms | `augment_dataset.py` |
-
-> 💡 **Consejo**: Si necesitas más datos, mejor buscar un dataset público de nubes (SWIM-CCSN, MGCD) 
-> en lugar de usar augmentación offline.
 
 ### Split de Datos
 
@@ -245,8 +187,6 @@ source venv/bin/activate
 # Instalación simple para CPU
 pip install -r requirements.txt
 ```
-✅ Rápido de instalar  
-❌ Entrenamiento lento (30-60 min/época)
 
 #### Opción B: GPU CUDA (Recomendado - ~2.8GB) ⚡
 ```bash
@@ -256,9 +196,6 @@ pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorc
 # DESPUÉS: Instalar resto de dependencias
 pip install -r requirements.txt
 ```
-✅ 10-15x más rápido que CPU  
-❌ Requiere GPU NVIDIA  
-❌ Descarga grande (~2.8GB)
 
 > 📚 **Ver [INSTALACION_CUDA.md](INSTALACION_CUDA.md)** para guía detallada sobre:
 > - Instalación GPU vs CPU
@@ -294,7 +231,7 @@ El proyecto incluye ~111 imágenes (10 por clase) en `data/`.
 
 **Entrenamiento con configuración optimizada (recomendado):**
 ```bash
-python main_train.py --mode train --epochs 100 --device cuda
+python main_train.py --mode train
 ```
 
 **Entrenamiento rápido para pruebas:**
