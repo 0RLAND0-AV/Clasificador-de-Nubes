@@ -82,12 +82,8 @@ class CloudPredictor:
         predicted_class = CLASS_NAMES[predicted_idx.item()]
         confidence_score = confidence.item()
         
-        # Manejo de incertidumbre (si la confianza es muy baja)
-        if confidence_score < MIN_CONFIDENCE:
-            predicted_class = "Unknown"
-            predicted_class_name = "Desconocido / No es una nube"
-        else:
-            predicted_class_name = CLOUD_CLASSES.get(predicted_class, predicted_class)
+        # Siempre devolver una clase de nube (sin Unknown)
+        predicted_class_name = CLOUD_CLASSES.get(predicted_class, predicted_class)
         
         result = {
             'image_path': str(image_path),

@@ -1,12 +1,5 @@
 # CloudClassify13 - Guía Rápida
 
-## ⚡ Inicio Rápido (5 minutos)
-
-### Estado Actual del Proyecto
-- ✅ **Modelo funcional**: `cloud_classifier_best.pth`
-- 📊 **Accuracy**: **43.75%** en validación
-- 📦 **Dataset**: 111 imágenes incluidas (11 clases)
-- ⚙️ **Configuración optimizada**: Lista para usar
 
 ### 1. Instalación Básica
 ```bash
@@ -38,35 +31,23 @@ pip install -r requirements.txt
 > 
 > 📚 **Más info**: Ver [INSTALACION_CUDA.md](INSTALACION_CUDA.md)
 
-### 2. Agregar Datos (OPCIONAL) NO EJECUTES ESTE PASO TODAVIA, LAS URLS NO SIRVEN.
-```bash
-# OPCIÓN A: Descargar imágenes de ejemplo (URLs pueden estar desactualizadas)
-python download_data.py --max-per-class 5
+### 3. Entrenar Modelo
 
-# OPCIÓN B (RECOMENDADO): Agregar tus propias imágenes manualmente
-# Copiar imágenes a las carpetas: data/Ci/, data/Cc/, data/Cs/, etc.
-# Mínimo 10 imágenes por clase, formato JPG/PNG
+#### ⭐ Opción A: Entrenamiento (Recomendado para empezar)
+```bash
+# Entrenamiento completo con GPU (200 épocas)
+python main_train.py 
+
 ```
 
-> **⚠️ NOTA:** El proyecto ya incluye 10 imágenes por clase en la carpeta `data/`.
-> Este paso es opcional si deseas agregar más imágenes de entrenamiento.
-
-### 4. Entrenar Modelo
-
-#### ⭐ Opción A: Entrenamiento Rápido (Recomendado para empezar)
+#### 🚀 Opción B: Entrenamiento rapido
 ```bash
 # Entrenamiento de prueba rápido (10 épocas)
 python main_train.py --mode train --epochs 10 --device auto --verbose
 ```
 
-#### 🚀 Opción B: Entrenamiento Completo (Recomendado para mejor accuracy)
-```bash
-# Entrenamiento completo con GPU (100 épocas)
-python main_train.py 
 
-
-
-### 5. Usar Interfaz Web
+### 4. Usar Interfaz Web
 ```bash
 python app.py
 ```
@@ -85,7 +66,7 @@ Abrir en navegador: **http://localhost:5000**
 ### Caso 1: Entrenamiento Completo con GPU
 ```bash
 # Mejor configuración para training completo
-python main_train.py --mode train --epochs 100 --device cuda --verbose
+python main_train.py --mode train --epochs 200 --device cuda --verbose
 ```
 ### Caso 2: Entrenamiento Rápido (CPU)
 ```bash
@@ -113,37 +94,6 @@ python predict.py --image ruta/mi_nube.jpg
 }
 ```
 
----
-
-## ⚠️ ADVERTENCIAS IMPORTANTES
-
-### 🚫 NO Usar `augment_dataset.py`
-
-El proyecto incluye `augment_dataset.py` pero **NO debe usarse**:
-
-**Razones**:
-- ❌ Genera augmentación **offline** (permanente en disco)
-- ❌ Causa **data leakage** entre train/val/test
-- ❌ **Reduce accuracy**: De 43.75% baja a 22-28%
-- ❌ Crea imágenes muy similares en diferentes splits
-
-**Problema Técnico**:
-```
-Original: Cu_001.jpg → Split: Train
-Augmented: Cu_001_aug1.jpg → Split: Val  ← LEAKAGE!
-           Cu_001_aug2.jpg → Split: Test ← LEAKAGE!
-```
-
-El modelo "memoriza" las variaciones y falla en generalizar.
-
-**✅ Alternativa Correcta**:
-- Usar **online augmentation** (ya implementado en `dataset.py`)
-- Las transformaciones se aplican en tiempo real durante training
-- Cada época ve versiones diferentes de las imágenes
-- No hay riesgo de data leakage
-
-
----
 
 ## 🗂️ Agregar Más Imágenes (Opcional)
 

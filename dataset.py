@@ -57,7 +57,7 @@ class CloudDataset(Dataset):
                 continue
             
             for img_file in class_dir.iterdir():
-                if img_file.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']:
+                if img_file.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.avif', '.tiff', '.tif']:
                     self.images.append(str(img_file))
                     self.labels.append(self.class_to_idx[class_name])
     

@@ -6,6 +6,18 @@ Parámetros de hiperparámetros, rutas y configuración del proyecto.
 Archivo: config.py
 Descripción: Centraliza todos los parámetros de configuración del modelo,
              dataset y entrenamiento para fácil modificación.
+
+================================================================================
+GUÍA DE HIPERPARÁMETROS CNN - LEE ESTO ANTES DE CAMBIAR VALORES
+================================================================================
+
+Cada parámetro tiene documentación que explica:
+  1. ¿Qué es y para qué sirve?
+  2. ¿Qué pasa si lo AUMENTO?
+  3. ¿Qué pasa si lo DISMINUYO?
+  4. Valor recomendado
+
+================================================================================
 """
 
 import os
@@ -43,117 +55,310 @@ NUM_CLASSES = len(CLOUD_CLASSES)
 CLASS_NAMES = list(CLOUD_CLASSES.keys())
 
 # ==================== PARÁMETROS DEL DATASET ====================
-# Tamaño de imagen de entrada
+
+# ------------------------------------------------------------------------------
+# IMAGE_SIZE (Tamaño de imagen de entrada)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Dimensión en píxeles a la que se redimensionan TODAS las imágenes.
+#   Las imágenes se convierten a IMAGE_SIZE x IMAGE_SIZE antes de entrar a la CNN.
+#
+# ¿Qué pasa si lo AUMENTO? (ej: 224 → 448)
+#   ✅ Más detalle: La CNN ve más detalles finos de las nubes
+#   ✅ Mejor precisión potencial: Distingue patrones pequeños
+#   ❌ 4x más lento: El entrenamiento tarda mucho más
+#   ❌ Más memoria GPU: Puede dar "CUDA out of memory"
+#   ❌ Overfitting: Con pocas imágenes, puede memorizar ruido
+#
+# ¿Qué pasa si lo DISMINUYO? (ej: 224 → 112)
+#   ✅ 4x más rápido: Entrenamiento veloz
+#   ✅ Menos memoria GPU: Funciona en GPUs pequeñas
+#   ❌ Pierde detalle: Patrones finos se pierden
+#   ❌ Peor precisión: Clases similares se confunden
+#
+# Valores típicos: 64, 112, 224, 299, 448
+# Recomendado: 224 (balance entre calidad y velocidad)
+# ------------------------------------------------------------------------------
 IMAGE_SIZE = 224
 IMAGE_HEIGHT = IMAGE_SIZE
 IMAGE_WIDTH = IMAGE_SIZE
-INPUT_CHANNELS = 3
+INPUT_CHANNELS = 3  # 3=RGB color, 1=escala de grises
 
-# Porcentaje de datos para entrenamiento, validación y test
-# AUMENTADO TRAIN para que el modelo vea casi todas las imágenes
-TRAIN_SPLIT = 0.85
-VAL_SPLIT = 0.14
-TEST_SPLIT = 0.01
+# ------------------------------------------------------------------------------
+# TRAIN_SPLIT / VAL_SPLIT / TEST_SPLIT (División de datos)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Porcentaje de imágenes para cada conjunto. DEBEN SUMAR 1.0
+#   - TRAIN: Imágenes que el modelo USA para aprender
+#   - VAL: Imágenes para medir progreso (NO las aprende)
+#   - TEST: Imágenes para evaluación final
+#
+# ¿Qué pasa si AUMENTO TRAIN_SPLIT? (ej: 0.70 → 0.95)
+#   ✅ El modelo ve más imágenes, aprende/memoriza mejor
+#   ❌ Menos validación, no sabes si memoriza o generaliza
+#
+# ¿Qué pasa si DISMINUYO TRAIN_SPLIT? (ej: 0.70 → 0.50)
+#   ❌ El modelo ve menos imágenes, aprende peor
+#   ✅ Mejor validación y métricas más confiables
+#
+# Valores típicos:
+#   Generalización: TRAIN=0.70, VAL=0.15, TEST=0.15
+#   Memorización:   TRAIN=0.95, VAL=0.05, TEST=0.00
+# ------------------------------------------------------------------------------
+TRAIN_SPLIT = 0.95  # 95% para entrenamiento (modo memorización)
+VAL_SPLIT = 0.05    # 5% para validación
+TEST_SPLIT = 0.0    # 0% para test
 
-# ==================== PARÁMETROS DEL MODELO CNN ====================
-# Arquitectura de capas convolucionales
-# Formato: (in_channels, out_channels, kernel_size, stride, padding)
+# ==============================================================================
+# ARQUITECTURA DE LA CNN - Capas Convolucionales y FC
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# CONV_LAYERS (Capas Convolucionales - Extracción de características)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Define los FILTROS que extraen características de las imágenes.
+#   Cada tupla: (canales_entrada, num_filtros, kernel, stride, padding)
+#   
+#   - num_filtros: Cantidad de detectores de patrones (bordes, texturas, formas)
+#   - kernel: Tamaño del filtro (3x3 es el estándar)
+#   - Las primeras capas detectan bordes, las últimas detectan conceptos abstractos
+#
+# ¿Qué pasa si AUMENTO los filtros? (ej: 64→128→256→512 a 128→256→512→1024)
+#   ✅ Más capacidad: Aprende patrones más complejos
+#   ✅ Mejor para datasets grandes
+#   ❌ Modelo más pesado (MB) y más lento
+#   ❌ Más memoria GPU necesaria
+#   ❌ Overfitting con pocas imágenes
+#
+# ¿Qué pasa si DISMINUYO los filtros? (ej: 64→128 a 16→32→64→128)
+#   ✅ Modelo ligero y rápido
+#   ✅ Menos overfitting con datasets pequeños
+#   ❌ Menos capacidad de aprendizaje
+#
+# Regla general:
+#   - <500 imágenes: Pocos filtros (16→32→64→128)
+#   - 500-5000 imágenes: Filtros medios (32→64→128→256)
+#   - >5000 imágenes: Muchos filtros (64→128→256→512)
+# ------------------------------------------------------------------------------
 CONV_LAYERS = [
-    (3, 64, 3, 1, 1),      # Conv1: 3->64 canales
-    (64, 128, 3, 1, 1),    # Conv2: 64->128 canales
-    (128, 256, 3, 1, 1),   # Conv3: 128->256 canales
-    (256, 512, 3, 1, 1),   # Conv4: 256->512 canales
+    (3, 64, 3, 1, 1),      # Conv1: RGB(3) → 64 filtros (detecta bordes)
+    (64, 128, 3, 1, 1),    # Conv2: 64 → 128 filtros (detecta texturas)
+    (128, 256, 3, 1, 1),   # Conv3: 128 → 256 filtros (detecta formas)
+    (256, 512, 3, 1, 1),   # Conv4: 256 → 512 filtros (detecta conceptos)
 ]
 
-# Arquitectura de capas completamente conectadas
+# ------------------------------------------------------------------------------
+# FC_LAYERS (Capas Fully Connected - Clasificación)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Neuronas que DECIDEN la clase basándose en las características extraídas.
+#   La última capa siempre tiene NUM_CLASSES neuronas (una por tipo de nube).
+#
+# ¿Qué pasa si AUMENTO neuronas?
+#   ✅ Más capacidad de decisión
+#   ❌ Más parámetros, modelo más pesado
+#   ❌ Riesgo de overfitting
+#
+# ¿Qué pasa si DISMINUYO neuronas?
+#   ✅ Modelo más ligero
+#   ❌ Puede no capturar relaciones complejas
+# ------------------------------------------------------------------------------
 FC_LAYERS = [512, 256, 128]
 
-# Dropout rate (regularización)
-DROPOUT_RATE = 0.1
+# ------------------------------------------------------------------------------
+# DROPOUT_RATE (Regularización)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Probabilidad de "apagar" neuronas aleatoriamente durante entrenamiento.
+#   Previene que el modelo memorice (overfitting).
+#   0.0 = sin dropout (memoriza todo), 0.5 = 50% neuronas apagadas
+#
+# ¿Qué pasa si lo AUMENTO? (ej: 0.3 → 0.7)
+#   ✅ Menos overfitting, mejor generalización
+#   ❌ Underfitting si es muy alto (no aprende nada)
+#   ❌ Entrenamiento más lento
+#
+# ¿Qué pasa si lo DISMINUYO? (ej: 0.5 → 0.0)
+#   ✅ Aprende/memoriza más rápido
+#   ❌ Más overfitting
+#
+# Valores típicos:
+#   Generalizar: 0.3 a 0.5
+#   Memorizar: 0.0 a 0.1
+# ------------------------------------------------------------------------------
+DROPOUT_RATE = 0.0  # Sin dropout = modo memorización
 
-# ==================== PARÁMETROS DE ENTRENAMIENTO ====================
-# Hiperparámetros de optimización
-BATCH_SIZE = 8
-LEARNING_RATE = 0.0005
-WEIGHT_DECAY = 1e-4
-EPOCHS = 100
-
-# Optimizer: 'adam', 'sgd', 'rmsprop'
-OPTIMIZER_TYPE = 'adam'
-OPTIMIZER = 'adam'  # Alias para compatibilidad
-
-# Loss function: 'crossentropy', 'focal_loss'
-LOSS_FUNCTION = 'crossentropy'
-
-# Early stopping
-EARLY_STOPPING_PATIENCE = 100  # Desactivado efectivamente (entrenar hasta el final)
-EARLY_STOPPING_MIN_DELTA = 0.001
-
-# Learning rate scheduler
-USE_LR_SCHEDULER = True
-LR_SCHEDULER_TYPE = 'cosine'  # 'cosine', 'step', 'exponential'
-SCHEDULER = 'cosine'  # Alias para compatibilidad
-LR_SCHEDULER_T_MAX = 30  # Para CosineAnnealingLR
-
-# ==================== DATA AUGMENTATION ====================
-# Técnicas de aumento de datos
+# ==============================================================================
+# DATA AUGMENTATION (Aumento de Datos) - Técnicas para enriquecer el dataset
+# ==============================================================================
+# ¿Qué es Data Augmentation?
+#   Transforma las imágenes durante el entrenamiento (rotar, voltear, etc.)
+#   para crear "variaciones" artificiales. Así el modelo ve más ejemplos.
+#
+# ¿Cuándo DESACTIVAR? (USE_DATA_AUGMENTATION = False)
+#   - Cuando quieres MEMORIZAR el dataset exacto
+#   - Dataset muy pequeño donde cada imagen es única e importante
+#   - Cuando la orientación importa (ej: suelo siempre abajo)
+#
+# ¿Cuándo ACTIVAR? (USE_DATA_AUGMENTATION = True)
+#   - Cuando quieres GENERALIZAR a nuevas imágenes
+#   - Dataset grande donde las transformaciones agregan variedad útil
+# ------------------------------------------------------------------------------
 USE_DATA_AUGMENTATION = True
+
+# ------------------------------------------------------------------------------
+# AUGMENTATION_PARAMS - Parámetros específicos de cada transformación
+# ------------------------------------------------------------------------------
+#
+# random_horizontal_flip: Voltear horizontalmente (espejo)
+#   ✅ Generalmente seguro para nubes
+#   Las nubes se ven igual volteadas horizontalmente
+#
+# random_vertical_flip: Voltear verticalmente
+#   ⚠️ PRECAUCIÓN: El suelo/cielo se invierte
+#   Normalmente DESACTIVADO porque el contexto del suelo ayuda
+#
+# random_rotation: Rotar la imagen N grados
+#   Valor = ángulo máximo de rotación
+#   10 = rota entre -10° y +10° (sutil)
+#   45 = rota entre -45° y +45° (agresivo)
+#   ⚠️ Mucha rotación puede deformar las nubes
+#
+# random_crop: Recortar un área aleatoria
+#   ⚠️ PELIGROSO: Puede recortar la nube principal
+#   Para memorización: DESACTIVADO
+#
+# random_brightness: Cambiar brillo (0.0 a 1.0)
+#   0.1 = cambio muy leve, 0.5 = cambio drástico
+#   Simula diferentes condiciones de luz
+#
+# random_contrast: Cambiar contraste (0.0 a 1.0)
+#   Simula cámaras con diferentes configuraciones
+#
+# random_saturation: Cambiar saturación de colores (0.0 a 1.0)
+#   0.0 = sin cambio, 1.0 = muy saturado o desaturado
+#
+# random_hue: Cambiar tono de color (0.0 a 0.5)
+#   ⚠️ PELIGROSO: Puede cambiar el color del cielo
+#   Para nubes: DESACTIVADO (0.0)
+#
+# gaussian_blur: Aplicar desenfoque
+#   Simula fotos borrosas o con poca nitidez
+# ------------------------------------------------------------------------------
 AUGMENTATION_PARAMS = {
     'random_horizontal_flip': True,
-    'random_vertical_flip': False,   # Desactivado: A veces el suelo ayuda a identificar la nube
+    'random_vertical_flip': False,   # Desactivado: El suelo ayuda a identificar
     'random_rotation': 10,           # Reducido: Rotar mucho deforma la nube
-    'random_crop': False,            # DESACTIVADO: Importante para que vea la foto completa
+    'random_crop': False,            # DESACTIVADO: Importante ver foto completa
     'random_brightness': 0.1,        # Muy leve
     'random_contrast': 0.1,          # Muy leve
     'random_saturation': 0.1,        # Muy leve
-    'random_hue': 0.0,               # Desactivado: No cambiar el color real
+    'random_hue': 0.0,               # Desactivado: No cambiar colores reales
     'gaussian_blur': False,
     'gaussian_blur_kernel': 3,
 }
 
-# Normalización (estadísticas de ImageNet)
-NORMALIZE_MEAN = [0.485, 0.456, 0.406]
-NORMALIZE_STD = [0.229, 0.224, 0.225]
+# ------------------------------------------------------------------------------
+# NORMALIZACIÓN (Estadísticas de ImageNet)
+# ------------------------------------------------------------------------------
+# ¿Qué es?
+#   Ajusta los valores de píxeles para que tengan media~0 y std~1.
+#   Los modelos preentrenados esperan estos valores específicos.
+#
+# ¿Por qué estos valores específicos (0.485, 0.456, 0.406)?
+#   Son las estadísticas calculadas de millones de imágenes de ImageNet.
+#   Si usas transfer learning de ImageNet, USA ESTOS VALORES.
+#
+# ¿Cuándo cambiarlos?
+#   - Si entrenas desde cero en un dominio MUY diferente
+#   - Si tus imágenes tienen distribución de colores muy distinta
+# ------------------------------------------------------------------------------
+NORMALIZE_MEAN = [0.485, 0.456, 0.406]  # Media RGB de ImageNet
+NORMALIZE_STD = [0.229, 0.224, 0.225]   # Desviación estándar RGB de ImageNet
 
-# ==================== DISPOSITIVO DE COMPUTACIÓN ====================
-# Usar GPU si está disponible
+# ==============================================================================
+# DISPOSITIVO DE COMPUTACIÓN (CPU vs GPU)
+# ==============================================================================
+# ¿Qué es USE_CUDA?
+#   True = Usa GPU (NVIDIA) si está disponible
+#   False = Fuerza uso de CPU
+#
+# GPU vs CPU:
+#   GPU: 10x a 100x más rápido en entrenamiento
+#   CPU: Más lento pero siempre disponible
+#
+# Si tienes GPU pero da errores de memoria:
+#   1. Reduce BATCH_SIZE
+#   2. Reduce IMAGE_SIZE
+#   3. Si sigue fallando, usa CPU (USE_CUDA = False)
+# ------------------------------------------------------------------------------
 USE_CUDA = True
 
-# ==================== PARÁMETROS DE LOGGING Y GUARDADO ====================
+# ==============================================================================
+# PARÁMETROS DE LOGGING Y GUARDADO
+# ==============================================================================
 # Crear directorios si no existen
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(WEB_DIR, exist_ok=True)
 os.makedirs(NOTEBOOKS_DIR, exist_ok=True)
 
-# Frecuencia de logging (cada N batches)
+# LOG_FREQUENCY: Cada cuántos batches mostrar información en consola
+#   Valor bajo (5): Mucha información, útil para debug
+#   Valor alto (50): Menos spam en consola
 LOG_FREQUENCY = 10
 
-# Guardar checkpoint cada N épocas
+# CHECKPOINT_FREQUENCY: Cada cuántas épocas guardar el modelo
+#   Valor bajo (1): Guarda cada época (usa más espacio en disco)
+#   Valor alto (10): Guarda menos frecuentemente
 CHECKPOINT_FREQUENCY = 5
 
-# ==================== PARÁMETROS DE PREDICCIÓN ====================
-# Confianza mínima para mostrar resultado
-MIN_CONFIDENCE = 0.3
+# ==============================================================================
+# PARÁMETROS DE PREDICCIÓN (para el clasificador web)
+# ==============================================================================
 
-# Top-K predicciones a mostrar
+# MIN_CONFIDENCE: Confianza mínima para aceptar una predicción
+#   0.0 = Siempre predice algo (recomendado para memorización)
+#   0.3 = Rechaza predicciones con <30% confianza
+#   0.5 = Solo acepta predicciones con >50% confianza
+#
+#   ⚠️ Con 0.0, NUNCA dirá "Unknown", siempre predice un tipo de nube
+MIN_CONFIDENCE = 0.0
+
+# TOP_K: Cuántas predicciones alternativas mostrar
+#   1 = Solo la predicción principal
+#   3 = Muestra las 3 más probables
+#   5 = Muestra las 5 más probables (útil para análisis)
 TOP_K = 3
 
-# ==================== PARÁMETROS DE LA WEB ====================
+# ==============================================================================
+# PARÁMETROS DE LA APLICACIÓN WEB (Flask)
+# ==============================================================================
+
 # Puerto del servidor web
+#   5000 = Puerto por defecto de Flask
+#   80 = Puerto HTTP estándar (requiere permisos de administrador)
 WEB_PORT = 5000
 
-# Tamaño máximo de archivo a subir
+# Tamaño máximo de archivo a subir (en bytes)
+#   5 * 1024 * 1024 = 5 MB
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
-# Extensiones permitidas
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'bmp'}
+# Extensiones de imagen permitidas
+#   Todas las extensiones que el modelo puede procesar
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'avif', 'tiff', 'tif'}
 
-# ==================== INFORMACIÓN DEL PROYECTO ====================
+# ==============================================================================
+# INFORMACIÓN DEL PROYECTO
+# ==============================================================================
 PROJECT_NAME = "CloudClassify13"
 PROJECT_VERSION = "1.0.0"
 PROJECT_DESCRIPTION = "Clasificación automática de tipos de nubes usando CNN"
 PROJECT_AUTHOR = "Grupo #13 - Inteligencia Artificial"
 
+# ==============================================================================
+# RESUMEN DE CONFIGURACIÓN AL INICIAR
+# ==============================================================================
 print(f"[OK] Configuracion cargada: {PROJECT_NAME} v{PROJECT_VERSION}")
 print(f"[OK] Clases a clasificar: {NUM_CLASSES}")
 print(f"[OK] Tamano de imagen: {IMAGE_SIZE}x{IMAGE_SIZE}")
